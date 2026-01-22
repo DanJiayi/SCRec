@@ -1,0 +1,8 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
+# 导入修改后的RPG模型（包含文本模态融合）
+from genrec.models.RPG.model_add_text import RPG

@@ -1,0 +1,40 @@
+dataset:
+  name: "Beauty"  # 修改：使用Sports_and_Outdoors数据集
+  max_items_per_seq: 128
+  type: "AmazonReviews2014"
+  features_needed: ["title", "brand", "categories"]
+  prompt_format: "v1"
+
+data_processing:
+  cache_dir: "cache"
+  metadata: "sentence"  # 先使用sentence模式确保文本嵌入正常工作
+  sent_emb_model: "text-embedding-3-large"
+  sent_emb_dim: 3072
+  sent_emb_batch_size: 100
+  sent_emb_pca: 512 
+  n_codebook: 8  # 修改：从64改为16
+  codebook_size: 256
+  faiss_omp_num_threads: 16
+  opq_use_gpu: false
+  opq_gpu_id: 0
+  openai_api_key: sk-IgIJjnBP19cLcaL1ExlhJIhvaRGtIUMQZw0pOV19ZtOHWzal
+  openai_base_url: https://yunwu.ai/v1
+
+RQ-VAE:
+  input_dim: 512 
+  hidden_dim: [1024, 512]
+  latent_dim: 256
+  num_layers: 32 # 修改：改回32
+  code_book_size: 256
+  dropout: 0.0
+  beta: 0.25
+  epochs: 5000
+  batch_size: 4096
+  optimizer: "AdamW"
+  lr: 0.001
+  weight_decay: 0.0
+  
+training:
+  device: "cuda:0"
+
+accelerator: "cuda:0"

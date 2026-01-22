@@ -1,0 +1,64 @@
+# Overwritting configs
+metadata: multimodal  # 修改为多模态（文本+图片+ID）
+
+# Config the sentence embedding model
+#   Sentence T5
+# sent_emb_model: /data/jwna230/peiyu/LLM-Models/sentence-transformers/sentence-t5-base
+# sent_emb_dim: 768
+# sent_emb_pca: 128
+#   OpenAI Embedding Model
+sent_emb_model: text-embedding-3-large
+sent_emb_dim: 3072
+sent_emb_pca: 512
+openai_api_key: sk-WR6aJpZ81gACet0aN8wXYx0lUfC0WgjjcrFRZAJKatkeuTke
+penai_base_url: https://yunwu.ai/v1
+
+sent_emb_batch_size: 512
+
+# Config the image embedding model
+#   CLIP models
+img_emb_model: clip-vit-base-patch32
+img_emb_dim: 512
+img_emb_pca: 256
+img_emb_batch_size: 32
+image_size: 224
+max_images_per_item: 5
+
+# Config for the backbone model
+max_item_seq_len: 50
+n_embd: 448
+n_layer: 2
+n_head: 4
+n_inner: 1024
+activation_function: gelu_new
+resid_pdrop: 0.0
+embd_pdrop: 0.5
+attn_pdrop: 0.5
+layer_norm_epsilon: 1e-12
+initializer_range: 0.02
+
+# Semantic ID configs
+n_codebook: 32
+codebook_size: 256
+opq_use_gpu: False
+opq_gpu_id: 0
+faiss_omp_num_threads: 32
+
+# RPG configs
+#   model
+temperature: 0.07
+num_beams: 50
+n_edges: 50
+propagation_steps: 3
+
+# --- 第四部分: RQ-VAE 参数 (我们唯一的"ID配置"来源) ---
+# 这是新的 Tokenizer 和模型唯一依赖的 ID 配置。
+# 旧的 'Semantic ID configs' 已被移除以避免冲突。
+RQ-VAE:
+  input_dim: 512          
+  hidden_dim: [1024, 512] 
+  latent_dim: 256         # RQ-VAE 模型的潜空间维度
+  num_layers: 3           # 这是 Codebook 的数量 (n_codebooks)
+  code_book_size: 2048    # 这是单个 Codebook 的大小
+  dropout: 0.0
+  beta: 0.25

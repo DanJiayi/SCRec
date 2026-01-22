@@ -1,0 +1,43 @@
+# ID-Only RPG Model Configuration
+metadata: sentence  # 只使用文本嵌入，不包含图片
+
+# Config the sentence embedding model
+sent_emb_model: text-embedding-3-large
+sent_emb_dim: 3072
+sent_emb_pca: 512
+openai_api_key: sk-WR6aJpZ81gACet0aN8wXYx0lUfC0WgjjcrFRZAJKatkeuTke
+openai_base_url: https://yunwu.ai/v1
+
+sent_emb_batch_size: 512
+
+# Config for the backbone model
+max_item_seq_len: 50
+n_embd: 448
+n_layer: 2
+n_head: 4
+n_inner: 1024
+activation_function: gelu_new
+resid_pdrop: 0.0
+embd_pdrop: 0.5
+attn_pdrop: 0.5
+layer_norm_epsilon: 1e-12
+initializer_range: 0.02
+
+# RQ-VAE 参数 (ID配置)
+RQ-VAE:
+  input_dim: 512          
+  hidden_dim: [1024, 512] 
+  latent_dim: 256         # RQ-VAE 模型的潜空间维度
+  num_layers: 3           # 这是 Codebook 的数量 (n_codebooks)
+  code_book_size: 2048    # 这是单个 Codebook 的大小
+  dropout: 0.0
+  beta: 0.25
+
+# RPG configs
+temperature: 0.07
+num_beams: 50
+n_edges: 50
+propagation_steps: 3
+
+
+

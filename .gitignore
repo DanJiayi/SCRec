@@ -1,0 +1,52 @@
+# 数据集缓存目录（文件较大，不上传）
+cache/
+
+# 模型检查点（文件较大，不上传）
+ckpt/
+
+# TensorBoard日志
+tensorboard/
+
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 日志文件
+*.log
+*.out
+
+# 临时文件
+*.tmp
+*.temp
+
+# 环境文件
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 大文件
+*.npy
+*.pkl
+*.h5
+*.hdf5
+
+# 但保留小的配置文件
+!genrec/datasets/AmazonReviews2014/config.yaml
+!genrec/default.yaml
+!genrec/models/RPG/config.yaml
+!quantization/rqvae_config.yaml
