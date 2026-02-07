@@ -487,7 +487,7 @@ class AmazonDataProcessor:
                 # 优先检查带维度的文件名
                 if os.path.exists(pca_emb_path):
                     try:
-                        import numpy as np
+                        # import numpy as np
                         existing_pca = np.load(pca_emb_path)
                         if existing_pca.shape[1] == self.config['sent_emb_pca']:
                             print(f'[TOKENIZER] ✅ PCA embeddings already exist with correct dimension: {existing_pca.shape}')
@@ -502,7 +502,7 @@ class AmazonDataProcessor:
                 # 如果带维度的文件不存在，检查默认文件
                 elif os.path.exists(default_pca_path):
                     try:
-                        import numpy as np
+                        # import numpy as np
                         existing_pca = np.load(default_pca_path)
                         if existing_pca.shape[1] == self.config['sent_emb_pca']:
                             print(f'[TOKENIZER] ✅ Default PCA embeddings have correct dimension: {existing_pca.shape}')
@@ -537,7 +537,7 @@ class AmazonDataProcessor:
         # 如果文本嵌入已存在且只需要重新生成PCA，直接加载
         if os.path.exists(sent_emb_path) and need_regenerate:
             print('[TOKENIZER] Loading existing text embeddings for PCA regeneration...')
-            import numpy as np
+            # import numpy as np
             sent_embs = np.fromfile(sent_emb_path, dtype=np.float32)
             sent_embs = sent_embs.reshape(-1, self.config['sent_emb_dim'])
             print(f'[TOKENIZER] Loaded text embeddings shape: {sent_embs.shape}')

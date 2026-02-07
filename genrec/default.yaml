@@ -1,5 +1,5 @@
 num_proc: 1
-cache_dir: /root/autodl-tmp/gr/cache/       # 修改为指向Generative-Recommendation/cache的绝对路径
+cache_dir: /root/test/gr/cache       # 修改为指向Generative-Recommendation/cache的绝对路径
 log_dir: logs/
 tensorboard_log_dir: tensorboard/
 ckpt_dir: ckpt/

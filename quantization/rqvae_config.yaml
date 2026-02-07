@@ -1,5 +1,6 @@
 dataset:
-  name: "Beauty"  # 修改：使用Sports_and_Outdoors数据集
+  name: "CDs_and_Vinyl" #"Beauty"  # 修改：使用Sports_and_Outdoors数据集
+  # name: "Toys_and_Games" #Beauty "Toys_and_Games" Sports_and_Outdoors
   max_items_per_seq: 128
   type: "AmazonReviews2014"
   features_needed: ["title", "brand", "categories"]
@@ -24,7 +25,7 @@ RQ-VAE:
   input_dim: 512 
   hidden_dim: [1024, 512]
   latent_dim: 256
-  num_layers: 32 # 修改：改回32
+  num_layers: 64 #32 # Beauty:32, Sports_and_Outdoors:16, Toys_and_Games:16, CDs_and_Vinyl:64
   code_book_size: 256
   dropout: 0.0
   beta: 0.25

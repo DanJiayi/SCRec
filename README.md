@@ -4,7 +4,7 @@
 先执行 
 
 ```
-python trian_rqvae.py
+python train_rqvae.py
 ```
 
 
