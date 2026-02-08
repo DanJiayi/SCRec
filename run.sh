@@ -13,6 +13,7 @@ python3 -m dataloader.amazon_data_processor --category CDs_and_Vinyl
 
     
 CUDA_VISIBLE_DEVICES=0 python main.py \
+    --model=RPG \
     --category=Sports_and_Outdoors \
     --lr=0.003 \
     --temperature=0.03 \
@@ -22,6 +23,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
     --propagation_steps=5
 
 CUDA_VISIBLE_DEVICES=0 python main.py \
+    --model=RPG \
     --category=Toys_and_Games \
     --lr=0.003 \
     --temperature=0.03 \

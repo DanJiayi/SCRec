@@ -137,7 +137,7 @@ class Pipeline:
             self.log(f'Loaded best model checkpoint from {self.trainer.saved_model_ckpt}')
 
         # Enable graph-constrained decoding for model inference
-        self.trainer.model.generate_w_decoding_graph = True
+        self.trainer.model.generate_w_decoding_graph = False #True
         test_results = self.trainer.evaluate(test_dataloader)
 
         if self.accelerator.is_main_process:

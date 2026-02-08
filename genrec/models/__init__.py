@@ -6,3 +6,4 @@
 
 # 导入修改后的RPG模型（包含文本模态融合）
 from genrec.models.RPG.model_add_text import RPG
+# RPGGatedSemantic 定义在 genrec.models.RPGGatedSemantic.model 中（避免与包名冲突）

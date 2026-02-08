@@ -159,12 +159,25 @@ def get_model(model_name: Union[str, AbstractModel]) -> AbstractModel:
         return model_name
 
     try:
-        model_class = getattr(
-            importlib.import_module('genrec.models'),
-            model_name
-        )
-    except:
-        raise ValueError(f'Model "{model_name}" not found.')
+        models_mod = importlib.import_module('genrec.models')
+        model_class = getattr(models_mod, model_name, None)
+        if model_class is None:
+            # Model may live in a subpackage (e.g. RPGGatedSemantic.model)
+            try:
+                model_mod = importlib.import_module(f'genrec.models.{model_name}.model')
+                model_class = getattr(model_mod, model_name)
+            except (ImportError, AttributeError):
+                raise ValueError(f'Model "{model_name}" not found.')
+        elif hasattr(model_class, '__path__'):
+            # It's a package; load the model class from its model submodule
+            model_class = getattr(
+                importlib.import_module(f'genrec.models.{model_name}.model'),
+                model_name
+            )
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(f'Model "{model_name}" not found.') from e
     return model_class
 
 

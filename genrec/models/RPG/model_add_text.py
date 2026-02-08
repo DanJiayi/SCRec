@@ -89,6 +89,11 @@ class RPG(AbstractModel):
         )
 
         self.gpt2 = GPT2Model(gpt2config)
+        # per-digit linear projection (for code aggregation)
+        # self.W_cf = nn.ModuleList([
+        #     nn.Linear(config['n_embd'], config['n_embd'], bias=False)
+        #     for _ in range(self.tokenizer.n_digit)
+        # ])
 
         self.n_pred_head = self.tokenizer.n_digit
         pred_head_list = []
@@ -134,9 +139,14 @@ class RPG(AbstractModel):
         # 直接拼接会导致维度不匹配，GPT-2期望448维输入
         # 所以仍然需要一个线性层来调整维度，但保持简单
         self.modality_fusion = nn.Linear(
-            config['n_embd'] + text_dim,  # 输入：448 + 1280 = 1728
+            config['n_embd']+ text_dim,  # 输入：448 + 1280 = 1728
             config['n_embd']               # 输出：448
         )
+
+        self.text_mlp = nn.Linear(text_dim, config['n_embd'])
+        # gate network: g = sigmoid(W_g [e_cf ; e_sem])
+        self.gate = nn.Linear(config['n_embd'] * 2, config['n_embd'])
+
 
     def _load_text_embeddings(self) -> torch.Tensor:
         """加载文本嵌入，支持动态维度"""
@@ -287,11 +297,17 @@ class RPG(AbstractModel):
             self._first_batch_logged = True
         
         # 拼接ID和文本模态
-        fused_embeddings = torch.cat([id_embeddings, text_emb], dim=-1)
+        # fused_embeddings = torch.cat([id_embeddings, text_emb], dim=-1)
         
         # 通过融合层
-        fused_embeddings = self.modality_fusion(fused_embeddings)
-        
+        e_sem = self.text_mlp(text_emb)          # (B,S,d)
+        # gate input: [e_cf ; e_sem]
+        gate_inp = torch.cat([id_embeddings, e_sem], dim=-1)
+        # g = sigmoid(W_g [...])
+        g = torch.sigmoid(self.gate(gate_inp))  # (B,S,d)
+        # e_mix = g ⊙ e_cf + (1-g) ⊙ e_sem
+        fused_embeddings = g * id_embeddings + (1 - g) * e_sem
+        # fused_embeddings = self.modality_fusion(fused_embeddings)
         return fused_embeddings
     
     def benchmark_fusion_performance(self, batch_size=32, seq_len=50, num_runs=100):
@@ -449,6 +465,19 @@ class RPG(AbstractModel):
         input_tokens = self.item_id2tokens[batch['input_ids']]
 
         id_embeddings = self.gpt2.wte(input_tokens).mean(dim=-2)
+        # v_all = self.gpt2.wte(input_tokens)  # (B, S, L, d)
+        # e_cf_list = []
+        # for l in range(self.tokenizer.n_digit):
+        #     e_cf_list.append(self.W_cf[l](v_all[:, :, l, :]))
+        # id_embeddings = torch.stack(e_cf_list, dim=0).sum(dim=0)  # (B, S, d)
+
+        self.code_weights = nn.Parameter(torch.ones(self.tokenizer.n_digit))
+        v_all = self.gpt2.wte(input_tokens)   # (B, S, L, d)
+        # weights = torch.softmax(self.code_weights.to(v_all.device), dim=0)
+        tau = self.config.get("code_weight_tau", 1.0)
+        weights = torch.softmax(self.code_weights.to(v_all.device) / tau, dim=0)  # (L,) -> (1, 1, L) -> (B, S, L)
+
+        id_embeddings = (v_all * weights[None, None, :, None]).sum(dim=-2)
         
         # 融合ID和文本模态
         fused_embeddings = self._fuse_text_modality(id_embeddings, batch)
