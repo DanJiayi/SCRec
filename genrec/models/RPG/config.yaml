@@ -72,4 +72,4 @@ propagation_steps: 3
 chunk_size: 1024
 num_workers: 64
 
-alpha: 0 #1
+alpha: 1

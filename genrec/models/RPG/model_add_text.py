@@ -142,7 +142,7 @@ class RPG(AbstractModel):
             config['n_embd']+ text_dim,  # 输入：448 + 1280 = 1728
             config['n_embd']               # 输出：448
         )
-
+        self.code_weights = nn.Parameter(torch.ones(self.tokenizer.n_digit))
         self.text_mlp = nn.Linear(text_dim, config['n_embd'])
         # gate network: g = sigmoid(W_g [e_cf ; e_sem])
         self.gate = nn.Linear(config['n_embd'] * 2, config['n_embd'])
@@ -474,14 +474,13 @@ class RPG(AbstractModel):
         # 获取ID模态嵌入
         input_tokens = self.item_id2tokens[batch['input_ids']]
 
-        id_embeddings = self.gpt2.wte(input_tokens).mean(dim=-2)
+        # id_embeddings = self.gpt2.wte(input_tokens).mean(dim=-2)
         # v_all = self.gpt2.wte(input_tokens)  # (B, S, L, d)
         # e_cf_list = []
         # for l in range(self.tokenizer.n_digit):
         #     e_cf_list.append(self.W_cf[l](v_all[:, :, l, :]))
         # id_embeddings = torch.stack(e_cf_list, dim=0).sum(dim=0)  # (B, S, d)
 
-        self.code_weights = nn.Parameter(torch.ones(self.tokenizer.n_digit))
         v_all = self.gpt2.wte(input_tokens)   # (B, S, L, d)
         # weights = torch.softmax(self.code_weights.to(v_all.device), dim=0)
         tau = self.config.get("code_weight_tau", 1.0)
@@ -493,7 +492,7 @@ class RPG(AbstractModel):
         fused_embeddings, e_sem = self._fuse_text_modality(id_embeddings, batch)
 
         # 不使用其他模态
-        #fused_embeddings = id_embeddings
+        # fused_embeddings = id_embeddings
         
         # 通过GPT-2
         outputs = self.gpt2(
@@ -519,9 +518,8 @@ class RPG(AbstractModel):
                 for i in range(self.n_pred_head)
             ]
             base_loss = torch.mean(torch.stack(losses))
-            outputs.base_loss = base_loss 
+            # outputs.loss = base_loss
 
-            
             # flatten B,S
             B, S, D = id_embeddings.shape
             e_cf_flat = id_embeddings.reshape(-1, D)
