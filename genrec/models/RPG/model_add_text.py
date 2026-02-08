@@ -155,7 +155,12 @@ class RPG(AbstractModel):
         nn.ReLU(),
         nn.Linear(self.config['n_embd'], self.config['n_embd'])
         )
-        self.alpha = self.config.get("alpha", 0.1)
+        self.alpha = self.config.get("alpha", 1)
+        self.manifold_beta = self.config.get("manifold_beta", 0.1)
+        self.manifold_c = self.config.get("manifold_c", 1.0)
+        self.proj_phi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
+        self.proj_psi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
+
 
 
     def _load_text_embeddings(self) -> torch.Tensor:
@@ -518,7 +523,7 @@ class RPG(AbstractModel):
                 for i in range(self.n_pred_head)
             ]
             base_loss = torch.mean(torch.stack(losses))
-            # outputs.loss = base_loss
+            outputs.loss = base_loss
 
             # flatten B,S
             B, S, D = id_embeddings.shape
@@ -552,11 +557,39 @@ class RPG(AbstractModel):
             contrastive_loss = F.cross_entropy(logits, labels)
 
             # total loss
-            outputs.loss = base_loss + self.contrastive_alpha * contrastive_loss
+            outputs.loss += self.contrastive_alpha * contrastive_loss
             outputs.align_loss = self.contrastive_alpha * contrastive_loss
 
+            # -------------------- 双曲流形对齐损失 --------------------
+            # 计算双曲映射
+            z_hyp = self.proj_phi(id_embeddings.view(-1, D))
+            z_hyp = self.hyp_map(z_hyp, self.manifold_c)          # φ(w_c)
+            e_mix_hyp = self.proj_psi(fused_embeddings.view(-1, D))
+            e_mix_hyp = self.hyp_map(e_mix_hyp, self.manifold_c)   # ψ(e_mix)
+
+            # 欧式距离平方
+            diff_sq = torch.sum((z_hyp - e_mix_hyp) ** 2, dim=-1)
+
+            # 范数平方
+            z_norm_sq = torch.clamp(self.manifold_c**2 - torch.sum(z_hyp ** 2, dim=-1), min=1e-6)
+            e_norm_sq = torch.clamp(self.manifold_c**2 - torch.sum(e_mix_hyp ** 2, dim=-1), min=1e-6)
+            # 双曲测地距离
+            arg = 1 + 2 * (self.manifold_c ** 2) * diff_sq / (z_norm_sq * e_norm_sq)
+            manifold_dist = torch.acosh(torch.clamp(arg, min=1 + 1e-5))  # Avoid numerical instability
+
+            manifold_loss = torch.mean(manifold_dist)
+
+            # 损失系数（可以在 config.yaml 中加：manifold_alpha: 0.05）
+            outputs.loss += self.manifold_beta * manifold_loss
+            outputs.manifold_loss = self.manifold_beta * manifold_loss
 
         return outputs
+
+    @staticmethod
+    def hyp_map(x, c):
+        norm = torch.norm(x, p=2, dim=-1, keepdim=True) + 1e-6
+        scale = c * torch.tanh(norm / (2 * c)) / norm
+        return scale * x
 
     def build_ii_sim_mat(self):
         # Assuming n_digit=32, codebook_size=256

@@ -103,6 +103,8 @@ class Trainer:
             total_loss = 0.0
             total_align_loss = 0.0
             has_align_loss = False
+            total_manifold_loss = 0.0
+            has_manifold_loss = False
             train_progress_bar = tqdm(
                 train_dataloader,
                 total=len(train_dataloader),
@@ -115,6 +117,9 @@ class Trainer:
                 if hasattr(outputs, 'align_loss'):
                     total_align_loss += outputs.align_loss.item()
                     has_align_loss = True
+                if hasattr(outputs, 'manifold_loss'):
+                    total_manifold_loss += outputs.manifold_loss.item()
+                    has_manifold_loss = True
                 self.accelerator.backward(loss)
                 if self.config['max_grad_norm'] is not None:
                     clip_grad_norm_(self.model.parameters(), self.config['max_grad_norm'])
@@ -132,6 +137,10 @@ class Trainer:
                 avg_align_loss = total_align_loss / len(train_dataloader)
                 log_dict["Loss/train_align_loss"] = avg_align_loss
                 msg += f", Train Align Loss: {avg_align_loss:.4f}"
+            if has_manifold_loss:
+                avg_manifold_loss = total_manifold_loss / len(train_dataloader)
+                log_dict["Loss/train_manifold_loss"] = avg_manifold_loss
+                msg += f", Train Manifold Loss: {avg_manifold_loss:.4f}"
 
             self.accelerator.log(log_dict, step=epoch + 1)
             self.log(msg)

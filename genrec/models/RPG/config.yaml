@@ -1,27 +1,6 @@
 # Overwritting configs
 metadata: sentence
 
-# Config the sentence embedding model
-#   Sentence T5
-# sent_emb_model: sentence-transformers/sentence-t5-base
-# sent_emb_dim: 768
-# sent_emb_pca: 128
-#   OpenAI Embedding Model
-sent_emb_model: text-embedding-3-large
-sent_emb_dim: 3072
-# 修改原因：使用原始特征训练码本，但融合时使用PCA特征
-# 原代码：使用PCA降维后的特征训练码本
-# sent_emb_pca: 512
-
-# 新代码：使用原始特征训练码本，但融合时使用PCA特征
-# 原代码：sent_emb_pca: 0 (使用原始特征)
-# 新代码：融合时使用1280维PCA特征，这是之前测试效果最好的维度
-sent_emb_pca: 1280
-# 修改原因：明确指定融合时使用的PCA维度
-text_embedding_dim: 1280
-openai_api_key: ~
-
-sent_emb_batch_size: 512
 
 # Config for the backbone model
 max_item_seq_len: 50
@@ -35,6 +14,13 @@ embd_pdrop: 0.5
 attn_pdrop: 0.5
 layer_norm_epsilon: 1e-12
 initializer_range: 0.02
+
+#loss weights
+alpha: 1
+contrastive_alpha: 0.1
+contrastive_tau: 0.1
+manifold_beta: 0.1
+manifold_c: 1.0
 
 # Semantic ID configs
 # 修改原因：使用RQVae码本替代FAISS码本
@@ -62,6 +48,37 @@ opq_use_gpu: False
 opq_gpu_id: 0
 faiss_omp_num_threads: 32
 
+sent_emb_pca: 1280
+# 修改原因：明确指定融合时使用的PCA维度
+text_embedding_dim: 1280
+
+
+
+
+
+
+
+
+#——————————————deprecated configs——————————————————
+# Config the sentence embedding model
+#   Sentence T5
+# sent_emb_model: sentence-transformers/sentence-t5-base
+# sent_emb_dim: 768
+# sent_emb_pca: 128
+#   OpenAI Embedding Model
+sent_emb_model: text-embedding-3-large
+sent_emb_dim: 3072
+# 修改原因：使用原始特征训练码本，但融合时使用PCA特征
+# 原代码：使用PCA降维后的特征训练码本
+# sent_emb_pca: 512
+
+# 新代码：使用原始特征训练码本，但融合时使用PCA特征
+# 原代码：sent_emb_pca: 0 (使用原始特征)
+# 新代码：融合时使用1280维PCA特征，这是之前测试效果最好的维度
+openai_api_key: ~
+
+sent_emb_batch_size: 512
+
 # RPG configs
 #   model
 temperature: 0.07
@@ -71,5 +88,3 @@ propagation_steps: 3
 #   decoding graph construction
 chunk_size: 1024
 num_workers: 64
-
-alpha: 1
