@@ -147,6 +147,16 @@ class RPG(AbstractModel):
         # gate network: g = sigmoid(W_g [e_cf ; e_sem])
         self.gate = nn.Linear(config['n_embd'] * 2, config['n_embd'])
 
+        self.contrastive_alpha = self.config.get("contrastive_alpha", 0.1)
+        self.contrastive_tau = self.config.get("contrastive_tau", 0.1)
+
+        self.q_net = nn.Sequential(
+        nn.Linear(self.config['n_embd'], self.config['n_embd']),
+        nn.ReLU(),
+        nn.Linear(self.config['n_embd'], self.config['n_embd'])
+        )
+        self.alpha = self.config.get("alpha", 0.1)
+
 
     def _load_text_embeddings(self) -> torch.Tensor:
         """加载文本嵌入，支持动态维度"""
@@ -308,7 +318,7 @@ class RPG(AbstractModel):
         # e_mix = g ⊙ e_cf + (1-g) ⊙ e_sem
         fused_embeddings = g * id_embeddings + (1 - g) * e_sem
         # fused_embeddings = self.modality_fusion(fused_embeddings)
-        return fused_embeddings
+        return fused_embeddings, e_sem
     
     def benchmark_fusion_performance(self, batch_size=32, seq_len=50, num_runs=100):
         """性能基准测试函数，用于验证优化效果"""
@@ -480,7 +490,7 @@ class RPG(AbstractModel):
         id_embeddings = (v_all * weights[None, None, :, None]).sum(dim=-2)
         
         # 融合ID和文本模态
-        fused_embeddings = self._fuse_text_modality(id_embeddings, batch)
+        fused_embeddings, e_sem = self._fuse_text_modality(id_embeddings, batch)
 
         # 不使用其他模态
         #fused_embeddings = id_embeddings
@@ -508,7 +518,46 @@ class RPG(AbstractModel):
                 self.loss_fct(token_logits[i], token_labels[:, i] - i * self.config['codebook_size'] - 1)
                 for i in range(self.n_pred_head)
             ]
-            outputs.loss = torch.mean(torch.stack(losses))
+            base_loss = torch.mean(torch.stack(losses))
+            outputs.base_loss = base_loss 
+
+            
+            # flatten B,S
+            B, S, D = id_embeddings.shape
+            e_cf_flat = id_embeddings.reshape(-1, D)
+
+            # e_sem_detach = e_sem.detach()
+            # e_sem_flat = e_sem_detach.reshape(-1, D)
+            # # q(e_cf)
+            # q_cf = self.q_net(e_cf_flat)
+            # mi_term = F.mse_loss(q_cf, e_sem_flat, reduction="mean")
+            # # q_cf = F.normalize(q_cf, dim=-1)
+            # # e_sem_flat = F.normalize(e_sem_flat, dim=-1)
+            # # # MI surrogate (mean cosine similarity)
+            # # mi_term = -torch.mean(torch.sum(q_cf * e_sem_flat, dim=-1))
+            
+            # # final loss: NOTE MINUS alpha
+            # outputs.loss = base_loss + self.alpha * mi_term
+            # outputs.align_loss = self.alpha * mi_term
+
+
+            # ================= InfoNCE contrastive loss =================
+            e_cf_flat = F.normalize(e_cf_flat, dim=-1)
+            e_sem_flat = e_sem.reshape(-1, D)
+            e_sem_flat = F.normalize(e_sem_flat, dim=-1)
+
+            # similarity matrix: (N, N)
+            logits = torch.matmul(e_cf_flat, e_sem_flat.T) / self.contrastive_tau
+            # positives are diagonal
+            labels = torch.arange(logits.size(0), device=logits.device)
+
+            contrastive_loss = F.cross_entropy(logits, labels)
+
+            # total loss
+            outputs.loss = base_loss + self.contrastive_alpha * contrastive_loss
+            outputs.align_loss = self.contrastive_alpha * contrastive_loss
+
+
         return outputs
 
     def build_ii_sim_mat(self):

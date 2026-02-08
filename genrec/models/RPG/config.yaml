@@ -71,3 +71,5 @@ propagation_steps: 3
 #   decoding graph construction
 chunk_size: 1024
 num_workers: 64
+
+alpha: 0 #1

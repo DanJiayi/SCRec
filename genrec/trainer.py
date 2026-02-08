@@ -101,6 +101,8 @@ class Trainer:
             # Training
             self.model.train()
             total_loss = 0.0
+            total_align_loss = 0.0
+            has_align_loss = False
             train_progress_bar = tqdm(
                 train_dataloader,
                 total=len(train_dataloader),
@@ -110,6 +112,9 @@ class Trainer:
                 optimizer.zero_grad()
                 outputs = self.model(batch)
                 loss = outputs.loss
+                if hasattr(outputs, 'align_loss'):
+                    total_align_loss += outputs.align_loss.item()
+                    has_align_loss = True
                 self.accelerator.backward(loss)
                 if self.config['max_grad_norm'] is not None:
                     clip_grad_norm_(self.model.parameters(), self.config['max_grad_norm'])
@@ -117,8 +122,20 @@ class Trainer:
                 scheduler.step()
                 total_loss = total_loss + loss.item()
 
-            self.accelerator.log({"Loss/train_loss": total_loss / len(train_dataloader)}, step=epoch + 1)
-            self.log(f'[Epoch {epoch + 1}] Train Loss: {total_loss / len(train_dataloader)}')
+            # self.accelerator.log({"Loss/train_loss": total_loss / len(train_dataloader)}, step=epoch + 1)
+            # self.log(f'[Epoch {epoch + 1}] Train Loss: {total_loss / len(train_dataloader)}')
+            avg_loss = total_loss / len(train_dataloader)
+            log_dict = {"Loss/train_loss": avg_loss}
+            msg = f"[Epoch {epoch + 1}] Train Loss: {avg_loss:.4f}"
+
+            if has_align_loss:
+                avg_align_loss = total_align_loss / len(train_dataloader)
+                log_dict["Loss/train_align_loss"] = avg_align_loss
+                msg += f", Train Align Loss: {avg_align_loss:.4f}"
+
+            self.accelerator.log(log_dict, step=epoch + 1)
+            self.log(msg)
+
 
             # Evaluation
             if (epoch + 1) % self.config['eval_interval'] == 0:
