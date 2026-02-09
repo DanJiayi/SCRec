@@ -21,7 +21,17 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
     --n_edges=200 \
     --propagation_steps=3 \
     --manifold_c=0.5 \
-    --manifold_beta=0
+    --manifold_beta=0.5
+
+CUDA_VISIBLE_DEVICES=0 python main.py \
+    --model=RPG \
+    --category=Beauty \
+    --lr=0.01 \
+    --temperature=0.03 \
+    --n_codebook=32 \
+    --num_beams=20 \
+    --manifold_c=0.5 \
+    --manifold_beta=0.5
     
     
 CUDA_VISIBLE_DEVICES=0 python main.py \
@@ -38,6 +48,16 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
 
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --model=RPG \
+    --category=Sports_and_Outdoors \
+    --lr=0.003 \
+    --temperature=0.03 \
+    --n_codebook=16 \
+    --num_beams=100 \
+    --manifold_c=0.5 \
+    --manifold_beta=0.5
+
+CUDA_VISIBLE_DEVICES=0 python main.py \
+    --model=RPG \
     --category=Toys_and_Games \
     --lr=0.003 \
     --temperature=0.03 \
@@ -47,6 +67,16 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
     --propagation_steps=3 \
     --manifold_c=2.0 \
     --manifold_beta=0
+
+CUDA_VISIBLE_DEVICES=0 python main.py \
+    --model=RPG \
+    --category=Toys_and_Games \
+    --lr=0.003 \
+    --temperature=0.03 \
+    --n_codebook=16 \
+    --num_beams=200 \
+    --manifold_c=2.0 \
+    --manifold_beta=0.5
 
 CUDA_VISIBLE_DEVICES=0 python main.py \
     --category=CDs_and_Vinyl \

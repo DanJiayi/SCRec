@@ -48,18 +48,14 @@ opq_use_gpu: False
 opq_gpu_id: 0
 faiss_omp_num_threads: 32
 
-sent_emb_pca: 1280
-# 修改原因：明确指定融合时使用的PCA维度
-text_embedding_dim: 1280
-
-
-
-
-
 
 
 
 #——————————————deprecated configs——————————————————
+# sent_emb_pca: 1280
+# # 修改原因：明确指定融合时使用的PCA维度
+# text_embedding_dim: 1280
+
 # Config the sentence embedding model
 #   Sentence T5
 # sent_emb_model: sentence-transformers/sentence-t5-base

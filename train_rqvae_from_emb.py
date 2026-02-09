@@ -145,13 +145,13 @@ def generate_codebook(model, item_embedding, item_ids, config, device, codebook_
 
 def main():
     parser = argparse.ArgumentParser(description="Train RQ-VAE from emb JSON and generate item codes")
-    parser.add_argument("--config", type=str, default="rqvae_config.yaml", help="Path to the config file")
-    parser.add_argument(
-        "--input_json",
-        type=str,
-        default="/root/test/preprocess/emb_beauty.json",
-        help="Path to JSON with item_id -> [emb1, emb2, emb3]",
-    )
+    parser.add_argument("--config", type=str, default="quantization/rqvae_config.yaml", help="Path to the config file")
+    # parser.add_argument(
+    #     "--input_json",
+    #     type=str,
+    #     default="cache/AmazonReviews2014/Beauty/processed/embeddings.json",
+    #     help="Path to JSON with item_id -> [emb1, emb2, emb3]",
+    # )
     parser.add_argument("--emb_index", type=int, default=2, help="Embedding index to use (emb3 -> 2)")
     parser.add_argument("--codebook_name", type=str, default="codebook-text.json", help="Output codebook filename")
     parser.add_argument("--model_name", type=str, default=None, help="Override model filename")
@@ -183,8 +183,9 @@ def main():
     device_name = config.get("training", {}).get("device", "cuda:0")
     device = torch.device(device_name)
 
-    logging.info(f"[DATA] Loading embeddings from: {args.input_json} (index {args.emb_index})")
-    item_ids, item_embedding_np = load_item_embeddings_from_json(args.input_json, args.emb_index)
+    input_json = f"cache/AmazonReviews2014/{dataset_name}/processed/embeddings.json"
+    logging.info(f"[DATA] Loading embeddings from: {input_json} (index {args.emb_index})")
+    item_ids, item_embedding_np = load_item_embeddings_from_json(input_json, args.emb_index)
     item_embedding = torch.from_numpy(item_embedding_np)
 
     model_config = config["RQ-VAE"]
