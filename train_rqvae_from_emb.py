@@ -12,8 +12,8 @@ import logging
 from datetime import datetime
 
 # Relative imports
-from utils import set_weight_decay, calc_cos_sim
-from rqvae.rqvae import RQVAE
+from quantization.utils import set_weight_decay, calc_cos_sim
+from quantization.rqvae.rqvae import RQVAE
 
 
 def load_item_embeddings_from_json(json_path, emb_index=2):
@@ -149,7 +149,7 @@ def main():
     parser.add_argument(
         "--input_json",
         type=str,
-        default="/root/test/preprocess/emb_sports.json",
+        default="/root/test/preprocess/emb_beauty.json",
         help="Path to JSON with item_id -> [emb1, emb2, emb3]",
     )
     parser.add_argument("--emb_index", type=int, default=2, help="Embedding index to use (emb3 -> 2)")

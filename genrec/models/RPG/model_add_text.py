@@ -156,7 +156,7 @@ class RPG(AbstractModel):
         nn.Linear(self.config['n_embd'], self.config['n_embd'])
         )
         self.alpha = self.config.get("alpha", 1)
-        self.manifold_beta = self.config.get("manifold_beta", 0.1)
+        self.manifold_beta = self.config.get("manifold_beta", 0.05)
         self.manifold_c = self.config.get("manifold_c", 1.0)
         self.proj_phi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
         self.proj_psi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
@@ -305,7 +305,7 @@ class RPG(AbstractModel):
         
         # 打印融合统计信息（只在第一个batch时打印）
         if not hasattr(self, '_first_batch_logged'):
-            print(f"[TEXT_MODAL] 🔄 Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
+            # print(f"[TEXT_MODAL] 🔄 Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
             print(f"[TEXT_MODAL] 🔄 Text embedding sample: {text_emb[0, 0, :5]}")
             print(f"[TEXT_MODAL] 🔄 Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
             print(f"[TEXT_MODAL] 🚀 Using vectorized indexing for performance optimization")
