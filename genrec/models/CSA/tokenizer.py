@@ -15,7 +15,7 @@ from genrec.dataset import AbstractDataset
 from genrec.tokenizer import AbstractTokenizer
 
 
-class RPGTokenizer(AbstractTokenizer):
+class CSATokenizer(AbstractTokenizer):
     """
     An example when "codebook_size == 256, n_codebooks == 32":
         0: padding
@@ -41,7 +41,7 @@ class RPGTokenizer(AbstractTokenizer):
         self.n_codebook_bits = self._get_codebook_bits(config['codebook_size'])
         self.index_factory = f'OPQ{config["n_codebook"]},IVF1,PQ{config["n_codebook"]}x{self.n_codebook_bits}'
 
-        super(RPGTokenizer, self).__init__(config, dataset)
+        super(CSATokenizer, self).__init__(config, dataset)
         self.item2id = dataset.item2id
         self.user2id = dataset.user2id
         self.id2item = dataset.id_mapping['id2item']

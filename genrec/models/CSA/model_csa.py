@@ -50,14 +50,14 @@ class ResBlock(nn.Module):
         return x + self.act(self.linear(x))
 
 
-class RPG(AbstractModel):
+class CSA(AbstractModel):
     def __init__(
         self,
         config: dict,
         dataset: AbstractDataset,
         tokenizer: AbstractTokenizer
     ):
-        super(RPG, self).__init__(config, dataset, tokenizer)
+        super(CSA, self).__init__(config, dataset, tokenizer)
 
         self.item_id2tokens = self._map_item_tokens().to(self.config['device'])
 
@@ -114,8 +114,8 @@ class RPG(AbstractModel):
 
         # 添加文本模态融合层
         text_dim = self.text_embeddings.shape[1]
-        print(f"[TEXT_MODAL] 🔧 Text embedding dimension: {text_dim}")
-        print(f"[TEXT_MODAL] 🔧 GPT2 embedding dimension: {config['n_embd']}")
+        # print(f"[TEXT_MODAL] 🔧 Text embedding dimension: {text_dim}")
+        # print(f"[TEXT_MODAL] 🔧 GPT2 embedding dimension: {config['n_embd']}")
         
         # 修改原因：使用拼接融合避免过度正则化，保持模型性能
         # 原代码：简单的线性融合层
@@ -202,7 +202,7 @@ class RPG(AbstractModel):
             pca_emb_file = os.path.join(processed_dir, 'final_pca_embeddings.npy')
             if os.path.exists(pca_emb_file):
                 embeddings = np.load(pca_emb_file)
-                print(f"[TEXT_MODAL] ✅ Loaded default PCA text embeddings: {embeddings.shape}")
+                print(f"[TEXT_MODAL] ✅ Loaded default PCA text embeddings") #: {embeddings.shape}
                 
                 # 检查嵌入数量是否与数据集商品数量匹配
                 if embeddings.shape[0] != self.dataset.n_items:
@@ -305,7 +305,7 @@ class RPG(AbstractModel):
         
         # 打印融合统计信息（只在第一个batch时打印）
         if not hasattr(self, '_first_batch_logged'):
-            # print(f"[TEXT_MODAL] 🔄 Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
+            print(f"[TEXT_MODAL] 🔄 Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
             print(f"[TEXT_MODAL] 🔄 Text embedding sample: {text_emb[0, 0, :5]}")
             print(f"[TEXT_MODAL] 🔄 Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
             print(f"[TEXT_MODAL] 🚀 Using vectorized indexing for performance optimization")
@@ -539,7 +539,6 @@ class RPG(AbstractModel):
             # # # MI surrogate (mean cosine similarity)
             # # mi_term = -torch.mean(torch.sum(q_cf * e_sem_flat, dim=-1))
             
-            # # final loss: NOTE MINUS alpha
             # outputs.loss = base_loss + self.alpha * mi_term
             # outputs.align_loss = self.alpha * mi_term
 
@@ -590,6 +589,10 @@ class RPG(AbstractModel):
         norm = torch.norm(x, p=2, dim=-1, keepdim=True) + 1e-6
         scale = c * torch.tanh(norm / (2 * c)) / norm
         return scale * x
+
+
+
+    #-----------------------Deprecated, unused (generate_w_decoding_graph is set to False since it is not suitable for rqvae)--------------------------------
 
     def build_ii_sim_mat(self):
         # Assuming n_digit=32, codebook_size=256

@@ -1,21 +1,11 @@
 CUDA_VISIBLE_DEVICES=0 python main.py \
-    --model=RPGGatedSemantic \
+    --model=CSA \
     --category=Beauty \
     --lr=0.01 \
     --temperature=0.03 \
     --n_codebook=32 \
     --num_beams=20 \
-    --n_edges=200 \
-    --propagation_steps=3
-
-
-CUDA_VISIBLE_DEVICES=0 python main.py \
-    --model=RPG \
-    --category=Beauty \
-    --lr=0.01 \
-    --temperature=0.03 \
-    --n_codebook=32 \
-    --num_beams=20 \
-    --n_edges=200 \
-    --propagation_steps=3
+    --manifold_c=0.5 \
+    --manifold_beta=0.5
+    
     
