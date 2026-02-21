@@ -1,0 +1,13 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+defaults: 
+  - amazon
+
+# data preprocessing
+type: steam
+name: steam
+features_needed: ['title', 'genre', 'specs', 'tags', 'price', 'publisher']
+prompt_format: "steam"
+
+RQ-VAE:
+  epochs: 1500

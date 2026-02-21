@@ -1,0 +1,55 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+# data preprocessing
+type: Amazon
+name: Beauty
+raw_data_path: ./ID_generation/preprocessing/raw_data/
+processed_data_path: ./ID_generation/preprocessing/processed/
+max_items_per_seq: 20
+features_needed: ['title', 'price', 'brand', 'categories']
+content_model: sentence-t5-xxl
+prompt_format: "amazon"
+
+RQ-VAE:
+  optimizer: AdamW
+  weight_decay: 0.1
+  batch_size: 2048
+  epochs: 8000 # 8000
+  lr: 0.001
+  beta: 0.25
+  input_dim: 768 # 768 1024
+  hidden_dim:
+    - 768
+    - 512
+    - 256
+  latent_dim: 128
+  num_layers: 3
+  dropout: 0.1
+  code_book_size: 256
+  max_seq_len: 256
+  val_ratio: 0.05
+
+TIGER:
+  n_positions: 102
+  save_every_n_epochs: 10
+  T5:
+    encoder_layers: 6
+    decoder_layers: 6
+    d_model: 128
+    d_ff: 1024
+    num_heads: 6
+    d_kv: 64
+    dropout_rate: 0.2
+    feed_forward_proj: "relu"
+    initializer_factor: 0.02
+
+  trainer:
+    steps: 200000
+    lr: 0.0003
+    patience: 50
+    scheduler: "cosine"
+    warmup_steps: 10000
+    weight_decay: 0.035
+    batch_size: 256
+    eval_batch_size: 32
+    eval_frequence: 10

@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+  - method: base
+  - dataset: amazon
+  - logging: wandb
+
+experiment_id: test
+seed: 0
+device_id: 0
+output_path: None
+test_method: tiger
