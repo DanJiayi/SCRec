@@ -1,17 +1,3 @@
-# python scripts/convert_embeddings_to_liger.py \
-#   --embeddings /root/test/gr/cache/AmazonReviews2014/Beauty/processed/embeddings.json \
-#   --output ./ID_generation/preprocessing/processed/Beauty_sentence-t5-base_embeddings_new.pt
-
-# python scripts/convert_embeddings_to_liger.py \
-# —dataset 
-#   --embeddings /root/test/gr/cache/AmazonReviews2014/Toys_and_Games/processed/embeddings.json \
-#   --output ./ID_generation/preprocessing/processed/Toys_and_Games_sentence-t5-base_embeddings_new.pt
-
-# python scripts/convert_embeddings_to_liger.py \
-#   --embeddings /root/test/gr/cache/AmazonReviews2014/Sports_and_Outdoors/processed/embeddings.json \
-#   --output ./ID_generation/preprocessing/processed/Sports_and_Outdoors_sentence-t5-base_embeddings_new.pt
-
-
 #--------------------------------liger+csa--------------------------------
 python run.py \
     dataset=amazon \

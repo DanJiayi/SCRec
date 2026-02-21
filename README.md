@@ -59,16 +59,11 @@ https://github.com/facebookresearch/liger
 Our wrapped CSA module is located at:
 
 ```
-src/csa_module
+csa-plug-and-play/src/csa_module
 ```
 
 ---
-### References
-[1] Shashank Rajput, Nikhil Mehta, Anima Singh, Raghunandan Hulikal Keshavan,
-Trung Vu, Lukasz Heldt, Lichan Hong, Yi Tay, Vinh Tran, Jonah Samost, et al.
-2023. Recommender systems with generative retrieval. Advances in Neural
-Information Processing Systems 36 (2023), 10299–10315.
+#### References
+[1] Shashank Rajput, Nikhil Mehta, Anima Singh, Raghunandan Hulikal Keshavan, Trung Vu, Lukasz Heldt, Lichan Hong, Yi Tay, Vinh Tran, Jonah Samost, et al. 2023. Recommender systems with generative retrieval. Advances in Neural Information Processing Systems 36 (2023), 10299–10315.
 
-[2] Guanyu Lin, Zhigang Hua, Tao Feng, Shuang Yang, Bo Long, and Jiaxuan You.
-2025. Unified semantic and ID representation learning for deep recommenders.
-arXiv preprint arXiv:2502.16474 (2025).
+[2] Guanyu Lin, Zhigang Hua, Tao Feng, Shuang Yang, Bo Long, and Jiaxuan You. 2025. Unified semantic and ID representation learning for deep recommenders. arXiv preprint arXiv:2502.16474 (2025).
