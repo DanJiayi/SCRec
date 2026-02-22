@@ -11,9 +11,7 @@ python3 -m preprocess.build_prompt --category Beauty
 python3 -m preprocess.encode_items --category Beauty
 ```
 
-Supported categories: `Beauty`, `Sports_and_Outdoors`, `Toys_and_Games`.
-
-Replace `Beauty` with your desired category.
+Supported categories: `Beauty`, `Sports_and_Outdoors`, `Toys_and_Games`. Replace `Beauty` with your desired category.
 
 ---
 
@@ -25,8 +23,7 @@ Train RQ-VAE and construct discrete code sequences:
 python3 train_rqvae_from_emb.py
 ```
 
-By default, this uses the Beauty dataset.  
-To switch datasets or modify configurations, edit:
+By default, this uses the Beauty dataset. To switch datasets or modify configurations, edit:
 ```text
 quantization/rqvae_config.yaml
 ```
@@ -52,9 +49,7 @@ We also implement CSA as a light-weight plug-and-play module and evaluate its pe
 csa-plug-and-play/readme.md
 ```
 
-This supplementary experiment is built upon the official open-source codebase of LIGER:
-
-https://github.com/facebookresearch/liger
+This supplementary experiment is built upon the official open-source codebase of LIGER: https://github.com/facebookresearch/liger
 
 Our wrapped CSA module is located at:
 
