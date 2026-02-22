@@ -1,4 +1,4 @@
-### 🚀 Quick Start
+## 🚀 Quick Start
 
 
 
@@ -44,7 +44,7 @@ bash run.sh
 
 
 ---
-### 🔧 Plug-and-play Module
+## 🔧 Plug-and-play Module
 
 We also implement CSA as a light-weight plug-and-play module and evaluate its performance on both TIGER[1] and LIGER[2]. You can reproduce the plug-and-play experiments in the `csa-plug-and-play` directory by following the instructions in:
 
@@ -63,7 +63,7 @@ csa-plug-and-play/src/csa_module
 ```
 
 ---
-#### References
+### References
 [1] Shashank Rajput, Nikhil Mehta, Anima Singh, Raghunandan Hulikal Keshavan, Trung Vu, Lukasz Heldt, Lichan Hong, Yi Tay, Vinh Tran, Jonah Samost, et al. 2023. Recommender systems with generative retrieval. Advances in Neural Information Processing Systems 36 (2023), 10299–10315.
 
 [2] Guanyu Lin, Zhigang Hua, Tao Feng, Shuang Yang, Bo Long, and Jiaxuan You. 2025. Unified semantic and ID representation learning for deep recommenders. arXiv preprint arXiv:2502.16474 (2025).
