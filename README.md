@@ -11,7 +11,7 @@ python3 -m preprocess.build_prompt --category Beauty
 python3 -m preprocess.encode_items --category Beauty
 ```
 
-Supported categories: `Beauty`, `Sports_and_Outdoors`, `Toys_and_Games`. Replace `Beauty` with your desired category.
+Supported categories: `Beauty`, `Sports_and_Outdoors`, `Toys_and_Games`. Replace `Beauty` with your desired dataset.
 
 ---
 
