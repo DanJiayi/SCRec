@@ -1,4 +1,4 @@
-### Plug-and-play Experiments
+## 💡 Plug-and-play Experiments
 
 This directory provides plug-and-play experiments for evaluating CSA on both LIGER and TIGER.
 
