@@ -52,7 +52,7 @@ We also implement CSA as a light-weight plug-and-play module and evaluate its pe
 csa-plug-and-play/readme.md
 ```
 
-This implementation is built upon the official open-source codebase of LIGER:
+This supplementary experiment is built upon the official open-source codebase of LIGER:
 
 https://github.com/facebookresearch/liger
 
