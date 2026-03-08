@@ -86,19 +86,19 @@ def train_rqvae(model, x, device, config):
     for epoch in tqdm(range(num_epochs), desc="Training RQ-VAE"):
         train_loss, train_rec_loss, train_commit_loss = train_epoch(model, dataloader, optimizer, config)
 
-        if (epoch + 1) % 10 == 0:
-            logging.info(
-                f"[TRAINING] Epoch {epoch+1:03d} | Train Loss: {train_loss:.4f} | "
-                f"Recon Loss: {train_rec_loss:.4f} | Commit Loss: {train_commit_loss:.4f}"
-            )
+        # if (epoch + 1) % 10 == 0:
+        #     logging.info(
+        #         f"[TRAINING] Epoch {epoch+1:03d} | Train Loss: {train_loss:.4f} | "
+        #         f"Recon Loss: {train_rec_loss:.4f} | Commit Loss: {train_commit_loss:.4f}"
+        #     )
 
         if (epoch + 1) % n_eval_interval == 0:
             val_loss, val_rec_loss, val_commit_loss = train_epoch(model, val_dataloader, None, config, flag_eval=True)
             cos_sim_array = calc_cos_sim(model, validationset, config)
-            logging.info(f"[VALIDATION] Eval @ Epoch {epoch+1}")
-            logging.info(f"[VALIDATION] Validation Recon Loss: {val_rec_loss:.4f} | Commit Loss: {val_commit_loss:.4f}")
-            for i in range(config["RQ-VAE"]["num_layers"]):
-                logging.info(f"[VALIDATION] Eval Cosine Sim @L{i+1}: {cos_sim_array[i]:.4f}")
+            # logging.info(f"[VALIDATION] Eval @ Epoch {epoch+1}")
+            # logging.info(f"[VALIDATION] Validation Recon Loss: {val_rec_loss:.4f} | Commit Loss: {val_commit_loss:.4f}")
+            # for i in range(config["RQ-VAE"]["num_layers"]):
+            #     logging.info(f"[VALIDATION] Eval Cosine Sim @L{i+1}: {cos_sim_array[i]:.4f}")
 
     print("[TRAINING] Training complete.")
 
@@ -120,12 +120,12 @@ def generate_codebook(model, item_embedding, item_ids, config, device, codebook_
             all_codes_list.append(codes)
 
     all_codes_np = np.vstack(all_codes_list)
-    logging.info(f"[CODEBOOK] Successfully generated all codes with shape: {all_codes_np.shape}")
+    # logging.info(f"[CODEBOOK] Successfully generated all codes with shape: {all_codes_np.shape}")
 
     if len(item_ids) != all_codes_np.shape[0]:
-        logging.warning(
-            f"[CODEBOOK] Warning: Item count mismatch. Codes: {all_codes_np.shape[0]}, Items: {len(item_ids)}"
-        )
+        # logging.warning(
+        #     f"[CODEBOOK] Warning: Item count mismatch. Codes: {all_codes_np.shape[0]}, Items: {len(item_ids)}"
+        # )
         min_count = min(len(item_ids), all_codes_np.shape[0])
         item_ids = item_ids[:min_count]
         all_codes_np = all_codes_np[:min_count]
@@ -184,7 +184,7 @@ def main():
     device = torch.device(device_name)
 
     input_json = f"cache/AmazonReviews2014/{dataset_name}/processed/embeddings.json"
-    logging.info(f"[DATA] Loading embeddings from: {input_json} (index {args.emb_index})")
+    # logging.info(f"[DATA] Loading embeddings from: {input_json} (index {args.emb_index})")
     item_ids, item_embedding_np = load_item_embeddings_from_json(input_json, args.emb_index)
     item_embedding = torch.from_numpy(item_embedding_np)
 
@@ -203,7 +203,7 @@ def main():
     logging.info(f"[TRAINING] Starting RQ-VAE model training for dataset: {dataset_name}...")
     train_rqvae(rqvae, item_embedding_np, device, config)
 
-    logging.info("[TRAINING] Training complete, starting final collision detection")
+    # logging.info("[TRAINING] Training complete, starting final collision detection")
     rqvae.to(device)
     rqvae.eval()
 
@@ -225,11 +225,11 @@ def main():
     num_duplicates = total_items - unique_items
     collision_rate = num_duplicates / total_items if total_items > 0 else 0
 
-    logging.info("[COLLISION] Final Collision Detection Results")
-    logging.info(f"[COLLISION] Total Items: {total_items}")
-    logging.info(f"[COLLISION] Unique Codes: {unique_items}")
-    logging.info(f"[COLLISION] Duplicated Items: {num_duplicates}")
-    logging.info(f"[COLLISION] Final Collision Rate: {collision_rate:.4%}")
+    # logging.info("[COLLISION] Final Collision Detection Results")
+    # logging.info(f"[COLLISION] Total Items: {total_items}")
+    # logging.info(f"[COLLISION] Unique Codes: {unique_items}")
+    # logging.info(f"[COLLISION] Duplicated Items: {num_duplicates}")
+    # logging.info(f"[COLLISION] Final Collision Rate: {collision_rate:.4%}")
 
     if args.model_name:
         model_name = args.model_name

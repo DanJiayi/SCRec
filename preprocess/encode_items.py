@@ -5,7 +5,7 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 
 
-MODEL_PATH = "change this to your sentence embedding model, e.g. sentence-t5-base"
+MODEL_PATH = "change this to your pretrained model path, e.g. ../sentence-t5-base"
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 64
