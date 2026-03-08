@@ -2,7 +2,7 @@
 
 #### Step 1: Extract Embeddings
 
-Note: We place the trained code indices under cache/, so you can skip Step 1 and Step 2 and directly run the generative model training.  If you want to re-extract embeddings, please change MODEL_PATH in preprocess/encode_items.py to the path of the pretrained language model on your machine (e.g., sentence-t5-base).
+**Note**: We place the extracted embeddings and trained code indices under cache/, so you can skip Step 1 and Step 2 and directly run the generative model training.  If you want to re-extract embeddings, please change MODEL_PATH in preprocess/encode_items.py to the path of the pretrained language model on your machine (e.g., sentence-t5-base).
 
 Generate embeddings for target and collaborative items:
 

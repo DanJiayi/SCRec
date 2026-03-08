@@ -26,7 +26,7 @@ data_processing:
   opq_use_gpu: false
   opq_gpu_id: 0
   openai_api_key: ~
-  openai_base_url: https://yunwu.ai/v1
+  openai_base_url: ~
 
 RQ-VAE:
   input_dim: 512 

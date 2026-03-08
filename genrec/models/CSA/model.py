@@ -1,8 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
 
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
 
 import torch
 import torch.nn as nn
@@ -84,14 +80,6 @@ class BaseModel(AbstractModel):
         self.temperature = self.config['temperature']
         self.loss_fct = torch.nn.CrossEntropyLoss(ignore_index=tokenizer.ignored_label)
 
-        # Graph-constrained decoding
-        self.generate_w_decoding_graph = False
-        self.init_flag = False
-        self.chunk_size = config['chunk_size']
-        self.num_beams = config['num_beams']
-        self.n_edges = config['n_edges']
-        self.propagation_steps = config['propagation_steps']
-
     def _map_item_tokens(self) -> torch.Tensor:
         """
         Maps item tokens to their corresponding item IDs.
@@ -141,140 +129,6 @@ class BaseModel(AbstractModel):
             outputs.loss = torch.mean(torch.stack(losses))
         return outputs
 
-    def build_ii_sim_mat(self):
-        # Assuming n_digit=32, codebook_size=256
-        n_items = self.dataset.n_items
-        n_digit = self.tokenizer.n_digit
-        codebook_size = self.tokenizer.codebook_size
-
-        # 1) Reshape first 8192 rows of token embeddings into [32, 256, d]
-        #    ignoring 2 rows which might be special tokens
-        #    shape: (32, 256, d)
-        token_embs = self.gpt2.wte.weight[1:-1].view(n_digit, codebook_size, -1)
-
-        # 2) Normalize each (256, d) sub-matrix to compute pairwise cosine similarities
-        #    We'll do this in a batch for all 32 groups.
-        # We do a batch matrix multiply to get (256 x 256) for each group
-        # => token_sims: (32, 256, 256)
-        token_embs = F.normalize(token_embs, dim=-1)
-        token_sims = torch.bmm(token_embs, token_embs.transpose(1, 2))
-
-        # 3) Convert [-1, 1] to [0, 1] range
-        token_sims_01 = 0.5 * (token_sims + 1.0)  # shape: (32, 256, 256)
-
-        # 4) Prepare an output similarity matrix
-        item_item_sim = torch.zeros((n_items, n_items), device=self.gpt2.device, dtype=torch.float32)
-
-        # 5) Fill the item-item matrix in chunks
-        for i_start in range(1, n_items, self.chunk_size):
-            i_end = min(i_start + self.chunk_size, n_items)
-
-            # shape: (chunk_i_size, 32)
-            tokens_i = self.item_id2tokens[i_start:i_end]  # sub-block for items i
-
-            for j_start in range(1, n_items, self.chunk_size):
-                j_end = min(j_start + self.chunk_size, n_items)
-
-                # shape: (chunk_j_size, 32)
-                tokens_j = self.item_id2tokens[j_start:j_end]  # sub-block for items j
-
-                # We want to compute a sub-block of shape: (chunk_i_size, chunk_j_size).
-                # For each digit k in [0..31], we look up token_sims_01[k, tokens_i[i, k], tokens_j[j, k]].
-
-                # We'll accumulate the similarity for each of the 32 digits
-                block_size_i = i_end - i_start
-                block_size_j = j_end - j_start
-                sum_block = torch.zeros((block_size_i, block_size_j), device=self.gpt2.device, dtype=torch.float32)
-
-                # We'll do a small loop over k=0..31 (which is constant = 32).
-                # Each token_sims_01[k] is (256, 256). We gather from it using:
-                #   row indices = tokens_i[:, k]
-                #   col indices = tokens_j[:, k]
-                #
-                # The typical approach is:
-                #   sub = token_sims_01[k].index_select(0, row_inds).index_select(1, col_inds)
-                # Then sum them up across k.
-                for k in range(n_digit):
-                    # row_inds shape: (block_size_i,)
-                    row_inds = tokens_i[:, k] - k * codebook_size - 1
-                    # col_inds shape: (block_size_j,)
-                    col_inds = tokens_j[:, k] - k * codebook_size - 1
-
-                    # token_sims_01[k] -> shape (256, 256)
-                    # row-gather => shape (block_size_i, 256)
-                    temp = token_sims_01[k].index_select(0, row_inds)
-                    # col-gather across dim=1 => shape (block_size_i, block_size_j)
-                    temp = temp.index_select(1, col_inds)
-
-                    # Accumulate
-                    sum_block += temp
-
-                # Now take the average across the 32 digits
-                avg_block = sum_block / n_digit
-
-                # Write back into the final item_item_sim
-                item_item_sim[i_start:i_end, j_start:j_end] = avg_block
-
-        return item_item_sim
-
-    def build_adjacency_list(self, item_item_sim):
-        return torch.topk(item_item_sim, k=self.n_edges, dim=-1).indices
-
-    def init_graph(self):
-        self.tokenizer.log("Building item-item similarity matrix...")
-        item_item_sim = self.build_ii_sim_mat()
-        self.adjacency = self.build_adjacency_list(item_item_sim)
-        self.tokenizer.log("Graph initialized.")
-
-    def graph_propagation(self, token_logits, n_return_sequences):
-        batch_size = token_logits.shape[0]
-
-        # Initialize visited nodes tracking
-        visited_nodes = {}
-        for batch_id in range(batch_size):
-            visited_nodes[batch_id] = set()
-
-        # Randomly sample num_beams distinct node IDs in [1..n_nodes]
-        topk_nodes_sorted = torch.randint(
-            1, self.dataset.n_items,
-            (batch_size, self.num_beams),
-            dtype=torch.long,
-            device=token_logits.device
-        )
-
-        # Add initial nodes to visited set
-        for batch_id in range(batch_size):
-            for node in topk_nodes_sorted[batch_id].cpu().numpy().tolist():
-                visited_nodes[batch_id].add(node)
-
-        for sid in range(self.propagation_steps):
-            # Find neighbors of these top num_beams nodes
-            #      adjacency_list is 0-based internally => need node_id-1
-            all_neighbors = self.adjacency[topk_nodes_sorted].view(batch_size, -1)
-
-            next_nodes = []
-            for batch_id in range(batch_size):
-                neighbors_in_batch = torch.unique(all_neighbors[batch_id])
-
-                # Add neighbors to visited set
-                for node in neighbors_in_batch.cpu().numpy().tolist():
-                    visited_nodes[batch_id].add(node)
-
-                scores = torch.gather(
-                    input=token_logits[batch_id].unsqueeze(0).expand(neighbors_in_batch.shape[0], -1),
-                    dim=-1,
-                    index=(self.item_id2tokens[neighbors_in_batch] - 1)
-                ).mean(dim=-1)
-
-                idxs = torch.topk(scores, self.num_beams).indices
-                next_nodes.append(neighbors_in_batch[idxs])
-            topk_nodes_sorted = torch.stack(next_nodes, dim=0)
-
-        # Convert visited counts to tensor
-        visited_counts = torch.FloatTensor([[len(visited_nodes[batch_id])] for batch_id in range(batch_size)])
-
-        return topk_nodes_sorted[:,:n_return_sequences].unsqueeze(-1), visited_counts
-
     def generate(self, batch, n_return_sequences=1):
         outputs = self.forward(batch, return_loss=False)
         states = outputs.final_states.gather(
@@ -290,20 +144,10 @@ class BaseModel(AbstractModel):
         logits = [F.log_softmax(logit, dim=-1) for logit in logits]
         token_logits = torch.cat(logits, dim=-1)    # (batch_size, n_tokens)
 
-        if self.generate_w_decoding_graph:
-            if not self.init_flag:
-                self.init_graph()
-                self.init_flag = True
-            outputs = self.graph_propagation(
-                token_logits=token_logits,
-                n_return_sequences=n_return_sequences
-            )
-            return outputs
-        else:
-            item_logits = torch.gather(
-                input=token_logits.unsqueeze(-2).expand(-1, self.dataset.n_items, -1),              # (batch_size, n_items, n_tokens)
-                dim=-1,
-                index=(self.item_id2tokens[1:,:] - 1).unsqueeze(0).expand(token_logits.shape[0], -1, -1)  # (batch_size, n_items, code_dim)
-            ).mean(dim=-1)
-            preds = item_logits.topk(n_return_sequences, dim=-1).indices + 1
-            return preds.unsqueeze(-1)
+        item_logits = torch.gather(
+            input=token_logits.unsqueeze(-2).expand(-1, self.dataset.n_items, -1),              # (batch_size, n_items, n_tokens)
+            dim=-1,
+            index=(self.item_id2tokens[1:,:] - 1).unsqueeze(0).expand(token_logits.shape[0], -1, -1)  # (batch_size, n_items, code_dim)
+        ).mean(dim=-1)
+        preds = item_logits.topk(n_return_sequences, dim=-1).indices + 1
+        return preds.unsqueeze(-1)

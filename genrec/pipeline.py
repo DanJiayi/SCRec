@@ -130,7 +130,6 @@ class Pipeline:
         if self.accelerator.is_main_process and self.checkpoint_path is None:
             self.log(f'Loaded best model checkpoint from {self.trainer.saved_model_ckpt}')
 
-        self.trainer.model.generate_w_decoding_graph = False #True
         test_results = self.trainer.evaluate(test_dataloader)
 
         if self.accelerator.is_main_process:

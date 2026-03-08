@@ -53,9 +53,4 @@ openai_api_key: ~
 sent_emb_batch_size: 512
 
 temperature: 0.07
-num_beams: 50
-n_edges: 50
-propagation_steps: 3
-#   decoding graph construction
-chunk_size: 1024
 num_workers: 64

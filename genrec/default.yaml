@@ -7,7 +7,7 @@ run_id: genrec_default  # Change this to your customized run id
 rand_seed: 2024
 reproducibility: True
 
-openai_base_url: https://api.wlai.vip/v1
+openai_base_url: ~
 
 train_batch_size: 256
 eval_batch_size: 32
