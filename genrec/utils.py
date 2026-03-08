@@ -1,8 +1,3 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
 
 import importlib
 import os
@@ -162,7 +157,7 @@ def get_model(model_name: Union[str, AbstractModel]) -> AbstractModel:
         models_mod = importlib.import_module('genrec.models')
         model_class = getattr(models_mod, model_name, None)
         if model_class is None:
-            # Model may live in a subpackage (e.g. RPGGatedSemantic.model)
+            # Model may live in a subpackage
             try:
                 model_mod = importlib.import_module(f'genrec.models.{model_name}.model')
                 model_class = getattr(model_mod, model_name)

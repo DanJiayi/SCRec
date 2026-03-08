@@ -47,15 +47,14 @@ faiss_omp_num_threads: 32
 
 
 
-# 
-# 这是新的 Tokenizer 和模型唯一依赖的 ID 配置。
+
 # RQ-VAE configs
 RQ-VAE:
   input_dim: 512          
   hidden_dim: [1024, 512] 
-  latent_dim: 256         # RQ-VAE 模型的潜空间维度
-  num_layers: 3           # 这是 Codebook 的数量 (n_codebooks)
-  code_book_size: 2048    # 这是单个 Codebook 的大小
+  latent_dim: 256     
+  num_layers: 3          
+  code_book_size: 2048  
   dropout: 0.0
   beta: 0.25
 

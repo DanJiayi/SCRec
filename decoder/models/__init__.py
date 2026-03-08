@@ -1,1 +1,1 @@
-from decoder.models.model import RPG
+from decoder.models.model import BaseModel

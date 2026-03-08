@@ -219,12 +219,12 @@ def get_model(model_name: Union[str, AbstractModel]) -> AbstractModel:
 
     try:
         # Special handling for multimodal models
-        if model_name == 'MultimodalRPG':
-            from decoder.models.multimodal_rpg import MultimodalRPG
-            return MultimodalRPG
-        elif model_name == 'MultimodalRPGSimple':
-            from decoder.models.multimodal_rpg_simple import MultimodalRPGSimple
-            return MultimodalRPGSimple
+        if model_name == 'MultimodalBase':
+            from decoder.models.multimodal_base import MultimodalBase
+            return MultimodalBase
+        elif model_name == 'MultimodalBaseSimple':
+            from decoder.models.multimodal_base_simple import MultimodalBaseSimple
+            return MultimodalBaseSimple
         else:
             model_class = getattr(
                 importlib.import_module('decoder.models'),
