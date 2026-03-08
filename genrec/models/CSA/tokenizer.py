@@ -1,8 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
 
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
 
 import os
 import math
@@ -119,7 +115,7 @@ class CSATokenizer(AbstractTokenizer):
             )
         elif 'text-embedding-3' in self.config['sent_emb_model']:
             from openai import OpenAI
-            # 支持自定义API基础URL
+            # Support a custom API base URL
             if 'openai_base_url' in self.config:
                 client = OpenAI(
                     api_key=self.config['openai_api_key'],
@@ -207,7 +203,7 @@ class CSATokenizer(AbstractTokenizer):
         if self.config['opq_use_gpu']:
             index = faiss.index_cpu_to_gpu(res, self.config['opq_gpu_id'], index, co)
         index.train(sent_embs[train_mask])
-        # 确保数组是C连续的，避免FAISS错误
+        # Ensure the array is C-contiguous to avoid FAISS errors
         sent_embs_contiguous = np.ascontiguousarray(sent_embs)
         index.add(sent_embs_contiguous)
         if self.config['opq_use_gpu']:
@@ -265,20 +261,20 @@ class CSATokenizer(AbstractTokenizer):
         Returns:
             dict: A dictionary mapping items to semantic IDs.
         """
-        # 检查是否使用RQVae码本
+        # Check whether to use the RQVae codebook
         if self.config.get('use_rqvae_codebook', False):
-            # 使用RQVae码本
+            # Use the RQVae codebook
             rqvae_codebook_path = self.config.get('rqvae_codebook_path')
             if rqvae_codebook_path and os.path.exists(rqvae_codebook_path):
                 self.log(f'[TOKENIZER] Loading RQVae codebook from {rqvae_codebook_path}...')
                 item2sem_ids = json.load(open(rqvae_codebook_path, 'r'))
                 item2tokens = self._sem_ids_to_tokens(item2sem_ids)
-                # RQVae码本已经是token格式，直接返回
+                # The RQVae codebook is already in token format, return directly
                 return item2tokens
             else:
                 self.log(f'[TOKENIZER] RQVae codebook not found at {rqvae_codebook_path}, falling back to FAISS...')
         
-        # 使用FAISS码本（原有逻辑）
+        # Use the FAISS codebook (original logic)
         # Load semantic IDs
         sem_ids_path = os.path.join(
             dataset.cache_dir, 'processed',
@@ -297,8 +293,8 @@ class CSATokenizer(AbstractTokenizer):
             else:
                 self.log(f'[TOKENIZER] Encoding sentence embeddings...')
                 sent_embs = self._encode_sent_emb(dataset, sent_emb_path)
-            # 修改原因：使用原始特征训练码本，但融合时使用PCA特征
-            # 原代码：先PCA降维再训练码本
+            # Reason for change: train the codebook with original features, while using PCA features for fusion
+            # Original code: apply PCA first, then train the codebook
             # if self.config['sent_emb_pca'] > 0:
             #     self.log(f'[TOKENIZER] Applying PCA to sentence embeddings...')
             #     from sklearn.decomposition import PCA
@@ -306,7 +302,7 @@ class CSATokenizer(AbstractTokenizer):
             #     sent_embs = pca.fit_transform(sent_embs)
             # self.log(f'[TOKENIZER] Sentence embeddings shape: {sent_embs.shape}')
 
-            # 新代码：使用原始特征训练码本，保留更多信息
+            # New code: use original features for codebook training to preserve more information
             self.log(f'[TOKENIZER] Using original features for codebook training: {sent_embs.shape}')
             
             # Generate semantic IDs

@@ -4,6 +4,6 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-# 导入 CSA 模型（包含文本模态融合）
+# Import the CSA model (with text-modality fusion)
 from genrec.models.CSA.model_csa import CSA
-# RPGGatedSemantic 定义在 genrec.models.RPGGatedSemantic.model 中（避免与包名冲突）
+# RPGGatedSemantic is defined in genrec.models.RPGGatedSemantic.model (to avoid conflicts with package names)

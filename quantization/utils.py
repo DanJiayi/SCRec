@@ -60,46 +60,46 @@ def process_embeddings(config, device, id2meta_file=None, embedding_save_path=No
 
 def process_image_embeddings(config, device, id2meta_file=None, embedding_save_path=None):
     """
-    处理图片嵌入，用于基于图片生成codebook
+    Process image embeddings for image-based codebook generation
     """
     category = config["dataset"]["name"]
     type = config["dataset"]["type"]
     
-    # 图片嵌入文件路径
+    # Image embedding file paths
     img_emb_dir = os.path.join("cache", type, category, "processed", "image_embeddings")
     img_emb_file = os.path.join(img_emb_dir, "image_embeddings_clip-vit-base-patch32.npy")
     img_emb_mapping_file = os.path.join(img_emb_dir, "image_embeddings_clip-vit-base-patch32_mapping.json")
     
-    # 检查图片嵌入文件是否存在
+    # Check whether image embedding files exist
     if not os.path.exists(img_emb_file):
         raise FileNotFoundError(f"Image embedding file not found: {img_emb_file}")
     
     if not os.path.exists(img_emb_mapping_file):
         raise FileNotFoundError(f"Image embedding mapping file not found: {img_emb_mapping_file}")
     
-    # 加载图片嵌入
+    # Load image embeddings
     img_embeddings = np.load(img_emb_file)
     
-    # 加载映射文件
+    # Load mapping file
     with open(img_emb_mapping_file, 'r') as f:
         img_mapping = json.load(f)
     
     print(f"[QUANTIZATION] Loaded image embeddings from '{img_emb_file}', shape={img_embeddings.shape}")
     print(f"[QUANTIZATION] Image mapping contains {len(img_mapping)} items")
     
-    # 检查是否需要PCA降维
+    # Check whether PCA dimensionality reduction is needed
     img_emb_pca = config.get("data_processing", {}).get("img_emb_pca", 512)
     if img_emb_pca > 0 and img_emb_pca < img_embeddings.shape[1]:
         print(f"[QUANTIZATION] Applying PCA to image embeddings: {img_embeddings.shape[1]} -> {img_emb_pca}")
         pca = PCA(n_components=img_emb_pca, whiten=True)
         img_embeddings = pca.fit_transform(img_embeddings)
         
-        # 保存PCA后的图片嵌入
+        # Save PCA-processed image embeddings
         pca_img_emb_path = os.path.join(img_emb_dir, "final_pca_image_embeddings.npy")
         np.save(pca_img_emb_path, img_embeddings)
         print(f"[QUANTIZATION] PCA image embeddings saved to: {pca_img_emb_path}")
     
-    # 转换为tensor
+    # Convert to tensor
     tensor = torch.from_numpy(img_embeddings).to(device, dtype=torch.float32)
     print(f"[QUANTIZATION] Image embeddings tensor shape: {tensor.shape}, dtype={tensor.dtype}")
     
@@ -108,14 +108,14 @@ def process_image_embeddings(config, device, id2meta_file=None, embedding_save_p
 
 def process_multimodal_embeddings(config, device, id2meta_file=None, embedding_save_path=None):
     """
-    处理图片和文本的拼接向量，用于构建多模态codebook
+    Process concatenated image and text vectors for multimodal codebook construction
     """
     category = config["dataset"]["name"]
     type = config["dataset"]["type"]
     
     print(f"[QUANTIZATION] Processing multimodal embeddings (text + image) for {category}")
     
-    # 1. 加载文本嵌入
+    # 1. Load text embeddings
     text_emb_file = os.path.join("cache", type, category, "processed", "text-embedding-3-large.sent_emb")
     if not os.path.exists(text_emb_file):
         raise FileNotFoundError(f"Text embedding file not found: {text_emb_file}")
@@ -123,7 +123,7 @@ def process_multimodal_embeddings(config, device, id2meta_file=None, embedding_s
     text_embeddings = np.fromfile(text_emb_file, dtype=np.float32).reshape(-1, 512)
     print(f"[QUANTIZATION] Loaded text embeddings: {text_embeddings.shape}")
     
-    # 2. 加载图片嵌入
+    # 2. Load image embeddings
     img_emb_dir = os.path.join("cache", type, category, "processed", "image_embeddings")
     img_emb_file = os.path.join(img_emb_dir, "image_embeddings_clip-vit-base-patch32.npy")
     img_emb_mapping_file = os.path.join(img_emb_dir, "image_embeddings_clip-vit-base-patch32_mapping.json")
@@ -141,7 +141,7 @@ def process_multimodal_embeddings(config, device, id2meta_file=None, embedding_s
     print(f"[QUANTIZATION] Loaded image embeddings: {image_embeddings.shape}")
     print(f"[QUANTIZATION] Image mapping contains {len(image_mapping)} items")
     
-    # 3. 加载数据集映射
+    # 3. Load dataset mapping
     id_mapping_file = os.path.join("cache", type, category, "processed", "id_mapping.json")
     if not os.path.exists(id_mapping_file):
         raise FileNotFoundError(f"ID mapping file not found: {id_mapping_file}")
@@ -152,29 +152,29 @@ def process_multimodal_embeddings(config, device, id2meta_file=None, embedding_s
     n_items = len(id_mapping['id2item'])
     print(f"[QUANTIZATION] Dataset contains {n_items} items")
     
-    # 4. 创建多模态嵌入矩阵
-    # 获取配置中的维度设置
+    # 4. Create multimodal embedding matrix
+    # Get dimension settings from config
     text_dim = config.get("data_processing", {}).get("sent_emb_pca", 512)
     image_dim = config.get("data_processing", {}).get("img_emb_pca", 256)
     
-    # 如果文本嵌入维度不匹配，进行PCA
+    # If text embedding dimension does not match, apply PCA
     if text_embeddings.shape[1] != text_dim:
         print(f"[QUANTIZATION] Applying PCA to text embeddings: {text_embeddings.shape[1]} -> {text_dim}")
         from sklearn.decomposition import PCA
         pca = PCA(n_components=text_dim, whiten=True)
         text_embeddings = pca.fit_transform(text_embeddings)
     
-    # 如果图片嵌入维度不匹配，进行PCA
+    # If image embedding dimension does not match, apply PCA
     if image_embeddings.shape[1] != image_dim:
         print(f"[QUANTIZATION] Applying PCA to image embeddings: {image_embeddings.shape[1]} -> {image_dim}")
         from sklearn.decomposition import PCA
         pca = PCA(n_components=image_dim, whiten=True)
         image_embeddings = pca.fit_transform(image_embeddings)
     
-    # 5. 创建拼接的多模态嵌入
+    # 5. Create concatenated multimodal embeddings
     multimodal_embeddings = np.zeros((n_items, text_dim + image_dim))
     
-    # 统计信息
+    # Statistics
     text_available = 0
     image_available = 0
     both_available = 0
@@ -182,15 +182,15 @@ def process_multimodal_embeddings(config, device, id2meta_file=None, embedding_s
     for item_id in range(1, n_items + 1):  # 1-based item IDs
         item_id_str = str(item_id)
         
-        # 获取文本嵌入
+        # Get text embedding
         if item_id - 1 < text_embeddings.shape[0]:
             text_emb = text_embeddings[item_id - 1]
             text_available += 1
         else:
-            # 如果没有文本嵌入，使用零向量
+            # If text embedding is unavailable, use zero vector
             text_emb = np.zeros(text_dim)
         
-        # 获取图片嵌入
+        # Get image embedding
         if item_id_str in image_mapping:
             image_idx = image_mapping[item_id_str]
             if image_idx < image_embeddings.shape[0]:
@@ -199,10 +199,10 @@ def process_multimodal_embeddings(config, device, id2meta_file=None, embedding_s
             else:
                 image_emb = np.zeros(image_dim)
         else:
-            # 如果没有图片嵌入，使用零向量
+            # If image embedding is unavailable, use zero vector
             image_emb = np.zeros(image_dim)
         
-        # 拼接文本和图片嵌入
+        # Concatenate text and image embeddings
         multimodal_embeddings[item_id - 1] = np.concatenate([text_emb, image_emb])
         
         if item_id - 1 < text_embeddings.shape[0] and item_id_str in image_mapping:
@@ -214,14 +214,14 @@ def process_multimodal_embeddings(config, device, id2meta_file=None, embedding_s
     print(f"   Both available: {both_available}/{n_items} ({both_available/n_items:.2%})")
     print(f"   Final multimodal embeddings shape: {multimodal_embeddings.shape}")
     
-    # 6. 保存多模态嵌入（可选）
+    # 6. Save multimodal embeddings (optional)
     if embedding_save_path is None:
         embedding_save_path = os.path.join("cache", type, category, "processed", "multimodal_embeddings.npy")
     
     np.save(embedding_save_path, multimodal_embeddings)
     print(f"[QUANTIZATION] Multimodal embeddings saved to: {embedding_save_path}")
     
-    # 7. 转换为tensor并返回
+    # 7. Convert to tensor and return
     tensor = torch.from_numpy(multimodal_embeddings).to(device, dtype=torch.float32)
     print(f"[QUANTIZATION] Multimodal embeddings tensor shape: {tensor.shape}, dtype={tensor.dtype}")
     

@@ -270,7 +270,7 @@ def filter_Kcore(user_items, user_core, item_core):
     # item_count: number of user this item has appeared
     while not isKcore:
         for user, num in user_count.items():
-            if user_count[user] < user_core:  # 直接把user 删除
+            if user_count[user] < user_core:  # Directly remove the user
                 user_items.pop(user)
             else:
                 for item in user_items[user]:
@@ -778,7 +778,7 @@ def preprocessing_each_dataset(config, dataset_name):
     with open(item2attributes_file, "w") as out:
         out.write(json_str)
 
-    # 保存 id2item 供 embedding 转换等使用
+    # Save id2item for embedding conversion and related use cases
     id2item_file = os.path.join(
         processed_data_path, f"{dataset_name}_id2item.json"
     )

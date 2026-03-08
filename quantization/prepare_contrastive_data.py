@@ -12,24 +12,24 @@ import argparse
 from typing import Dict, List, Tuple
 import pickle
 
-# 设置日志
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def load_amazon_data(data_dir: Path, split: str = "train") -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    加载Amazon数据集
+    Load Amazon dataset
     Args:
-        data_dir: 数据目录
-        split: 数据集分割 (train/val/test)
+        data_dir: Data directory
+        split: Dataset split (train/val/test)
     Returns:
-        user_ids: 用户ID数组
-        item_seqs: 物品序列数组
-        timestamps: 时间戳数组
+        user_ids: User ID array
+        item_seqs: Item sequence array
+        timestamps: Timestamp array
     """
     logger.info(f"Loading {split} data from {data_dir}")
     
-    # 加载用户-物品交互数据
+    # Load user-item interaction data
     user_item_file = data_dir / f"{split}_user_item.npz"
     if user_item_file.exists():
         data = np.load(user_item_file)
@@ -37,37 +37,37 @@ def load_amazon_data(data_dir: Path, split: str = "train") -> Tuple[np.ndarray, 
         item_seqs = data['item_seqs']
         timestamps = data['timestamps']
     else:
-        # 如果没有预处理的数据，尝试加载现有的数据格式
+        # If preprocessed data is unavailable, try loading existing data formats
         logger.warning(f"Preprocessed data not found: {user_item_file}")
         logger.info("Trying to load existing data format...")
         
-        # 尝试加载all_item_seqs.json
+        # Try loading all_item_seqs.json
         all_seqs_file = data_dir / "all_item_seqs.json"
         if all_seqs_file.exists():
             logger.info(f"Loading data from {all_seqs_file}")
             with open(all_seqs_file, 'r') as f:
                 all_seqs_data = json.load(f)
             
-            # 提取用户ID和物品序列
+            # Extract user IDs and item sequences
             user_ids = list(all_seqs_data.keys())
             item_seqs = list(all_seqs_data.values())
             
-            # 创建虚拟时间戳（因为原始数据中没有时间信息）
+            # Create dummy timestamps (original data has no time information)
             timestamps = []
             for seq in item_seqs:
-                # 为每个序列创建递增的时间戳
+                # Create increasing timestamps for each sequence
                 seq_timestamps = list(range(len(seq)))
                 timestamps.append(seq_timestamps)
             
             logger.info(f"Loaded data from all_item_seqs.json")
         else:
-            # 尝试加载raw_data.pkl文件
+            # Try loading raw_data.pkl file
             raw_data_file = data_dir / "raw_data.pkl"
             if raw_data_file.exists():
                 with open(raw_data_file, 'rb') as f:
                     raw_data = pickle.load(f)
                 
-                # 提取数据
+                # Extract data
                 user_ids = raw_data[f'{split}_user_ids']
                 item_seqs = raw_data[f'{split}_item_seqs']
                 timestamps = raw_data[f'{split}_timestamps']
@@ -83,26 +83,26 @@ def load_amazon_data(data_dir: Path, split: str = "train") -> Tuple[np.ndarray, 
 
 def load_text_embeddings(data_dir: Path, split: str = "train") -> np.ndarray:
     """
-    加载文本嵌入
+    Load text embeddings
     Args:
-        data_dir: 数据目录
-        split: 数据集分割
+        data_dir: Data directory
+        split: Dataset split
     Returns:
-        文本嵌入数组
+        Text embedding array
     """
-    # 尝试加载PCA降维后的文本嵌入
+    # Try loading PCA-reduced text embeddings
     pca_file = data_dir / f"final_pca_embeddings_{split}.npy"
     if pca_file.exists():
         logger.info(f"Loading PCA text embeddings from {pca_file}")
         embeddings = np.load(pca_file)
     else:
-        # 尝试加载默认PCA嵌入
+        # Try loading default PCA embeddings
         default_pca_file = data_dir / "final_pca_embeddings.npy"
         if default_pca_file.exists():
             logger.info(f"Loading default PCA text embeddings from {default_pca_file}")
             embeddings = np.load(default_pca_file)
         else:
-            # 尝试加载原始文本嵌入
+            # Try loading raw text embeddings
             sent_emb_file = data_dir / "text-embedding-3-large.sent_emb"
             if sent_emb_file.exists():
                 logger.info(f"Loading raw text embeddings from {sent_emb_file}")
@@ -115,42 +115,42 @@ def load_text_embeddings(data_dir: Path, split: str = "train") -> np.ndarray:
 
 def create_item_text_mapping(data_dir: Path) -> Dict[int, int]:
     """
-    创建物品ID到文本嵌入索引的映射
+    Create mapping from item IDs to text embedding indices
     Args:
-        data_dir: 数据目录
+        data_dir: Data directory
     Returns:
-        物品ID到文本嵌入索引的映射字典
+        Mapping dictionary from item IDs to text embedding indices
     """
-    # 尝试加载物品ID映射文件
+    # Try loading item ID mapping file
     id_mapping_file = data_dir / "id_mapping.json"
     if id_mapping_file.exists():
         logger.info(f"Loading item ID mapping from {id_mapping_file}")
         with open(id_mapping_file, 'r') as f:
             id_mapping = json.load(f)
         
-        # 创建物品ID到索引的映射
-        # 假设id_mapping.json的格式是 {item_id: index} 或 {index: item_id}
-        # 我们需要确定哪个是物品ID，哪个是索引
+        # Create mapping from item IDs to indices
+        # Assume id_mapping.json format is either {item_id: index} or {index: item_id}
+        # We need to determine which one is item ID and which one is index
         if len(id_mapping) > 0:
             first_key = list(id_mapping.keys())[0]
             first_value = id_mapping[first_key]
             
-            # 检查第一个键和值的类型，确定映射关系
+            # Check types of first key and value to determine mapping direction
             try:
-                # 尝试将键转换为整数，如果成功说明键是物品ID
+                # Try converting key to int; if successful, key is item ID
                 int(first_key)
-                # 键是物品ID，值是索引
+                # Key is item ID, value is index
                 mapping = {int(k): int(v) for k, v in id_mapping.items()}
                 logger.info(f"Loaded mapping: item_id -> index for {len(mapping)} items")
             except ValueError:
-                # 键不是物品ID，尝试将值转换为整数
+                # Key is not item ID, try converting value to int
                 try:
                     int(first_value)
-                    # 键是索引，值是物品ID
+                    # Key is index, value is item ID
                     mapping = {int(v): int(k) for k, v in id_mapping.items()}
                     logger.info(f"Loaded mapping: index -> item_id for {len(mapping)} items")
                 except ValueError:
-                    # 都不是，创建简单的连续映射
+                    # Neither fits, create a simple sequential mapping
                     logger.warning("Could not determine mapping format, creating sequential mapping")
                     mapping = {}
         else:
@@ -158,16 +158,16 @@ def create_item_text_mapping(data_dir: Path) -> Dict[int, int]:
         
         return mapping
     
-    # 如果没有映射文件，尝试从其他文件推断
+    # If mapping file is missing, try inferring from other files
     logger.warning("Item ID mapping file not found, trying to infer...")
     
-    # 检查是否有物品元数据文件
+    # Check if item metadata file exists
     metadata_file = data_dir / "metadata.sentence.json"
     if metadata_file.exists():
         with open(metadata_file, 'r') as f:
             item_metadata = json.load(f)
         
-        # 假设物品ID是连续的，从0开始
+        # Assume item IDs are continuous and start from 0
         mapping = {}
         for i, item_id in enumerate(sorted(item_metadata.keys())):
             try:
@@ -178,10 +178,10 @@ def create_item_text_mapping(data_dir: Path) -> Dict[int, int]:
         logger.info(f"Inferred mapping for {len(mapping)} items from metadata")
         return mapping
     
-    # 如果都没有，创建一个简单的连续映射
+    # If all else fails, create a simple sequential mapping
     logger.warning("No mapping information found, creating sequential mapping")
-    # 这里需要根据实际的物品数量来调整
-    # 暂时返回空字典，后续处理时会处理
+    # This should be adjusted based on actual number of items
+    # Temporarily return an empty dict; it will be handled later
     return {}
 
 def prepare_contrastive_data(data_dir: Path, 
@@ -189,23 +189,23 @@ def prepare_contrastive_data(data_dir: Path,
                            max_seq_len: int = 128,
                            min_seq_len: int = 5) -> None:
     """
-    准备对比学习RQ-VAE的训练数据
+    Prepare training data for contrastive-learning RQ-VAE
     Args:
-        data_dir: 输入数据目录
-        output_dir: 输出数据目录
-        max_seq_len: 最大序列长度
-        min_seq_len: 最小序列长度
+        data_dir: Input data directory
+        output_dir: Output data directory
+        max_seq_len: Maximum sequence length
+        min_seq_len: Minimum sequence length
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # 加载数据
+    # Load data
     user_ids, item_seqs, timestamps = load_amazon_data(data_dir, "train")
     text_embeddings = load_text_embeddings(data_dir, "train")
     
-    # 创建物品ID到文本嵌入的映射
+    # Create mapping from item IDs to text embeddings
     item_text_mapping = create_item_text_mapping(data_dir)
     
-    # 如果没有映射，创建一个简单的映射
+    # If mapping is empty, create a simple mapping
     if not item_text_mapping:
         logger.info("Creating simple sequential mapping")
         unique_items = set()
@@ -216,21 +216,21 @@ def prepare_contrastive_data(data_dir: Path,
         item_text_mapping = {i: i for i in range(max_item_id + 1)}
         logger.info(f"Created mapping for {len(item_text_mapping)} items")
     
-    # 过滤和处理序列
+    # Filter and process sequences
     filtered_seqs = []
     filtered_text_embs = []
     
     logger.info("Processing sequences...")
     for i, seq in enumerate(tqdm(item_seqs, desc="Processing sequences")):
-        # 过滤太短的序列
+        # Filter out sequences that are too short
         if len(seq) < min_seq_len:
             continue
         
-        # 截断太长的序列
+        # Truncate sequences that are too long
         if len(seq) > max_seq_len:
             seq = seq[:max_seq_len]
         
-        # 检查序列中的物品是否都有对应的文本嵌入
+        # Check whether all items in sequence have corresponding text embeddings
         valid_seq = True
         for item_id in seq:
             if item_id not in item_text_mapping:
@@ -240,14 +240,14 @@ def prepare_contrastive_data(data_dir: Path,
         if not valid_seq:
             continue
         
-        # 获取对应的文本嵌入
+        # Get corresponding text embeddings
         seq_text_embs = []
         for item_id in seq:
             text_idx = item_text_mapping[item_id]
             if text_idx < len(text_embeddings):
                 seq_text_embs.append(text_embeddings[text_idx])
             else:
-                # 如果索引超出范围，使用零向量
+                # If index is out of range, use zero vector
                 seq_text_embs.append(np.zeros(text_embeddings.shape[1]))
         
         filtered_seqs.append(seq)
@@ -255,11 +255,11 @@ def prepare_contrastive_data(data_dir: Path,
     
     logger.info(f"Filtered sequences: {len(filtered_seqs)}")
     
-    # 转换为numpy数组
+    # Convert to numpy arrays
     item_seqs_array = np.array(filtered_seqs, dtype=object)
     text_embeddings_array = np.array(filtered_text_embs, dtype=object)
     
-    # 保存处理后的数据
+    # Save processed data
     train_output_file = output_dir / "train_item_seqs.npy"
     train_text_file = output_dir / "train_text_embeddings.npy"
     
@@ -270,12 +270,12 @@ def prepare_contrastive_data(data_dir: Path,
     logger.info(f"  Item sequences: {train_output_file}")
     logger.info(f"  Text embeddings: {train_text_file}")
     
-    # 创建验证集（如果原始数据中有的话）
+    # Create validation set (if present in original data)
     try:
         val_user_ids, val_item_seqs, val_timestamps = load_amazon_data(data_dir, "val")
         val_text_embeddings = load_text_embeddings(data_dir, "val")
         
-        # 处理验证集
+        # Process validation set
         val_filtered_seqs = []
         val_filtered_text_embs = []
         
@@ -286,7 +286,7 @@ def prepare_contrastive_data(data_dir: Path,
             if len(seq) > max_seq_len:
                 seq = seq[:max_seq_len]
             
-            # 检查有效性
+            # Check validity
             valid_seq = True
             for item_id in seq:
                 if item_id not in item_text_mapping:
@@ -296,7 +296,7 @@ def prepare_contrastive_data(data_dir: Path,
             if not valid_seq:
                 continue
             
-            # 获取文本嵌入
+            # Get text embeddings
             seq_text_embs = []
             for item_id in seq:
                 text_idx = item_text_mapping.get(item_id, 0)
@@ -308,7 +308,7 @@ def prepare_contrastive_data(data_dir: Path,
             val_filtered_seqs.append(seq)
             val_filtered_text_embs.append(np.array(seq_text_embs))
         
-        # 保存验证集
+        # Save validation set
         val_output_file = output_dir / "val_item_seqs.npy"
         val_text_file = output_dir / "val_text_embeddings.npy"
         
@@ -322,14 +322,14 @@ def prepare_contrastive_data(data_dir: Path,
     except Exception as e:
         logger.warning(f"Could not create validation set: {e}")
     
-    # 保存映射信息
+    # Save mapping information
     mapping_file = output_dir / "item_text_mapping.json"
     with open(mapping_file, 'w') as f:
         json.dump(item_text_mapping, f, indent=2)
     
     logger.info(f"Saved item-text mapping: {mapping_file}")
     
-    # 保存数据集统计信息
+    # Save dataset statistics
     stats = {
         "num_sequences": len(filtered_seqs),
         "max_seq_len": max_seq_len,

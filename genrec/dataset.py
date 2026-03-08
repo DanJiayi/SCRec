@@ -49,8 +49,8 @@ class AbstractDataset:
         Returns:
             int: The number of items in the dataset.
         """
-        # 修改原因：使用id2item的长度而不是item2id的长度，因为id2item包含了[PAD] token
-        # 这样可以确保tensor大小与ID范围一致，避免索引越界
+        # Reason for change: use the length of id2item instead of item2id because id2item includes the [PAD] token
+        # This ensures tensor size is consistent with the ID range and avoids index out-of-bounds
         return len(self.id_mapping['id2item'])
 
     @property

@@ -25,26 +25,22 @@ class ResBlock(nn.Module):
         return x + self.act(self.linear(x))
 
 
-class MultimodalRPGSimple(AbstractModel):
-    """
-    简化版三模态RPG模型：ID + 文本 + 图片
-    使用简化的融合策略，避免复杂的维度处理
-    """
+class MultimodalBaseSimple(AbstractModel):
     def __init__(
         self,
         config: dict,
         dataset: AbstractDataset,
         tokenizer: AbstractTokenizer
     ):
-        super(MultimodalRPGSimple, self).__init__(config, dataset, tokenizer)
+        super(MultimodalBaseSimple, self).__init__(config, dataset, tokenizer)
 
         self.rqvae_config = self.config['RQ-VAE']
         self.codebook_size = self.rqvae_config['code_book_size']
 
-        # 核心改动：直接从 tokenizer 引用最终的查找表
+        # Core change: directly reference the final lookup table from tokenizer
         self.item_id2tokens = self.tokenizer.item_id2tokens
 
-        # 加载图片和文本嵌入（简化版本）
+        # Load image and text embeddings (simplified version)
         self.image_embeddings = self._load_image_embeddings()
         self.text_embeddings = self._load_text_embeddings()
 
@@ -56,29 +52,30 @@ class MultimodalRPGSimple(AbstractModel):
         self.temperature = self.config['temperature']
         self.loss_fct = torch.nn.CrossEntropyLoss(ignore_index=tokenizer.ignored_label)
         
-        # 简化的多模态融合层 - 直接拼接融合
-        # 原实现（包含文本模态）因“融合时去掉文本模态”的需求被注释：
+        # Simplified multimodal fusion layer - direct concatenation fusion
+        # Original implementation (with text modality) was commented out due to
+        # the requirement to remove text modality during fusion:
         # self.modality_fusion = nn.Linear(
         #     config['n_embd'] + self.image_embeddings.shape[1] + self.text_embeddings.shape[1], 
         #     config['n_embd']
         # )
-        # 仅使用 ID + 图片 模态进行融合（因去掉文本模态）
+        # Fuse only ID + image modalities (text modality removed)
         self.modality_fusion = nn.Linear(
             config['n_embd'] + self.image_embeddings.shape[1],
             config['n_embd']
         )
         
-        # 注释掉模态权重（可学习）- 改为直接拼接融合
-        # self.modality_weights = nn.Parameter(torch.ones(3))  # ID, 文本, 图片
+        # Comment out learnable modality weights - switch to direct concatenation fusion
+        # self.modality_weights = nn.Parameter(torch.ones(3))  # ID, text, image
 
     def _load_image_embeddings(self) -> torch.Tensor:
-        """加载图片嵌入 - 优先加载512维的图片embedding"""
+        """Load image embeddings - prioritize loading 512-dim image embeddings"""
         try:
             category = self.config.get('category', 'Beauty')
             cache_dir = self.config.get('cache_dir', 'cache')
             img_emb_dir = os.path.join(cache_dir, 'AmazonReviews2014', category, 'processed', 'image_embeddings')
             
-            # 优先尝试加载512维的CLIP嵌入
+            # Prefer loading 512-dim CLIP embeddings first
             clip_512_file = os.path.join(img_emb_dir, 'image_embeddings_clip-vit-base-patch32-512d.npy')
             clip_512_mapping_file = os.path.join(img_emb_dir, 'image_embeddings_clip-vit-base-patch32-512d_mapping.json')
             if os.path.exists(clip_512_file) and os.path.exists(clip_512_mapping_file):
@@ -86,14 +83,14 @@ class MultimodalRPGSimple(AbstractModel):
                 with open(clip_512_mapping_file, 'r') as f:
                     import json
                     mapping = json.load(f)
-                print(f"[MULTIMODAL] ✅ Loaded 512-dim CLIP image embeddings: {embeddings.shape}")
-                print(f"[MULTIMODAL] ✅ CLIP mapping contains {len(mapping)} items")
-                print(f"[MULTIMODAL] ✅ Image embedding sample: {embeddings[0][:5]}")  # 显示前5个值
-                # 保存映射到实例变量
+                print(f"[MULTIMODAL] Loaded 512-dim CLIP image embeddings: {embeddings.shape}")
+                print(f"[MULTIMODAL] CLIP mapping contains {len(mapping)} items")
+                print(f"[MULTIMODAL] Image embedding sample: {embeddings[0][:5]}")  # Show first 5 values
+                # Save mapping to instance variable
                 self.clip_mapping = mapping
                 return torch.from_numpy(embeddings).float()
             
-            # 如果512维文件不存在，尝试加载256维的CLIP嵌入（作为备选）
+            # If the 512-dim file does not exist, try loading 256-dim CLIP embeddings (fallback)
             clip_file = os.path.join(img_emb_dir, 'image_embeddings_clip-vit-base-patch32.npy')
             clip_mapping_file = os.path.join(img_emb_dir, 'image_embeddings_clip-vit-base-patch32_mapping.json')
             if os.path.exists(clip_file) and os.path.exists(clip_mapping_file):
@@ -101,21 +98,21 @@ class MultimodalRPGSimple(AbstractModel):
                 with open(clip_mapping_file, 'r') as f:
                     import json
                     mapping = json.load(f)
-                print(f"[MULTIMODAL] ⚠️ Loaded 256-dim CLIP image embeddings (fallback): {embeddings.shape}")
-                print(f"[MULTIMODAL] ⚠️ CLIP mapping contains {len(mapping)} items")
-                # 保存映射到实例变量
+                print(f"[MULTIMODAL] Loaded 256-dim CLIP image embeddings (fallback): {embeddings.shape}")
+                print(f"[MULTIMODAL] CLIP mapping contains {len(mapping)} items")
+                # Save mapping to instance variable
                 self.clip_mapping = mapping
                 return torch.from_numpy(embeddings).float()
             
-            # 尝试加载随机向量
+            # Try loading random vectors
             random_file = os.path.join(img_emb_dir, 'image_embeddings_random.npy')
             if os.path.exists(random_file):
                 embeddings = np.load(random_file)
                 print(f"[MULTIMODAL] ⚠️ Loaded random image embeddings: {embeddings.shape}")
                 return torch.from_numpy(embeddings).float()
             
-            # 如果都没有，生成随机向量
-            print("[MULTIMODAL] ❌ No image embeddings found, generating random vectors")
+            # If none found, generate random vectors
+            print("[MULTIMODAL] No image embeddings found, generating random vectors")
             n_items = self.dataset.n_items
             img_dim = self.config.get('img_emb_dim', 512)
             random_embeddings = np.random.normal(0, 1, (n_items, img_dim))
@@ -130,31 +127,31 @@ class MultimodalRPGSimple(AbstractModel):
             return torch.from_numpy(random_embeddings).float()
 
     def _load_text_embeddings(self) -> torch.Tensor:
-        """加载文本嵌入"""
+        """Load text embeddings"""
         try:
             category = self.config.get('category', 'Beauty')
             cache_dir = self.config.get('cache_dir', 'cache')
             processed_dir = os.path.join(cache_dir, 'AmazonReviews2014', category, 'processed')
             
-            # 尝试加载文本嵌入
+            # Try loading text embeddings
             sent_emb_file = os.path.join(processed_dir, 'text-embedding-3-large.sent_emb')
             if os.path.exists(sent_emb_file):
-                # 使用fromfile加载二进制格式的embedding文件
+                # Use fromfile to load the binary embedding file
                 embeddings = np.fromfile(sent_emb_file, dtype=np.float32).reshape(-1, 512)
-                print(f"[MULTIMODAL] ✅ Loaded text embeddings: {embeddings.shape}")
-                print(f"[MULTIMODAL] ✅ Text embedding sample: {embeddings[0][:5]}")  # 显示前5个值
+                print(f"[MULTIMODAL] Loaded text embeddings: {embeddings.shape}")
+                print(f"[MULTIMODAL] Text embedding sample: {embeddings[0][:5]}")  # Show first 5 values
                 return torch.from_numpy(embeddings).float()
             
-            # 如果没有，生成随机向量
-            print("[MULTIMODAL] ❌ No text embeddings found, generating random vectors")
+            # If none found, generate random vectors
+            print("[MULTIMODAL] No text embeddings found, generating random vectors")
             n_items = self.dataset.n_items
             text_dim = self.config.get('sent_emb_pca', 512)
             random_embeddings = np.random.normal(0, 1, (n_items, text_dim))
             return torch.from_numpy(random_embeddings).float()
             
         except Exception as e:
-            print(f"[MULTIMODAL] ❌ Error loading text embeddings: {e}")
-            print("[MULTIMODAL] ❌ Using random vectors as fallback")
+            print(f"[MULTIMODAL] Error loading text embeddings: {e}")
+            print("[MULTIMODAL] Using random vectors as fallback")
             n_items = self.dataset.n_items
             text_dim = self.config.get('sent_emb_pca', 512)
             random_embeddings = np.random.normal(0, 1, (n_items, text_dim))
@@ -169,98 +166,99 @@ class MultimodalRPGSimple(AbstractModel):
                 f'#Total trainable parameters: {total_params}\n')
 
     def _simple_fuse_modalities(self, id_embeddings, batch):
-        """真正的多模态融合，使用真实的图片和文本嵌入"""
+        """Actual multimodal fusion using real image and text embeddings"""
         
-        # 如果使用多模态码本，直接返回ID嵌入，不进行额外融合
+        # If using a multimodal codebook, return ID embeddings directly without additional fusion
         if self.config.get('use_multimodal_codebook', False):
             return id_embeddings
         batch_size = id_embeddings.shape[0]
         seq_len = id_embeddings.shape[1]
         device = id_embeddings.device
         
-        # 获取嵌入维度
+        # Get embedding dimensions
         text_dim = self.text_embeddings.shape[1]
         image_dim = self.image_embeddings.shape[1]
         
-        # 获取批次中的商品ID
+        # Get item IDs in the batch
         item_ids = batch['input_ids']  # shape: (batch_size, seq_len)
         
-        # 从嵌入表中获取对应的文本和图片嵌入
-        # 注意：item_ids是1-based，但嵌入表是0-based
+        # Get corresponding text and image embeddings from embedding tables
+        # Note: item_ids are 1-based, while embedding tables are 0-based
         text_emb = torch.zeros(batch_size, seq_len, text_dim, device=device)
         image_emb = torch.zeros(batch_size, seq_len, image_dim, device=device)
         
-        # 统计有效嵌入的数量
+        # Count number of valid embeddings
         valid_embeddings = 0
         total_positions = batch_size * seq_len
         
-        # 调试信息：检查嵌入表大小
+        # Debug info: check embedding table sizes
         if not hasattr(self, '_first_batch_logged'):
-            print(f"[MULTIMODAL] 🔍 Debug info:")
-            print(f"[MULTIMODAL] 🔍 Text embeddings shape: {self.text_embeddings.shape}")
-            print(f"[MULTIMODAL] 🔍 Image embeddings shape: {self.image_embeddings.shape}")
-            print(f"[MULTIMODAL] 🔍 Dataset n_items: {self.dataset.n_items}")
-            print(f"[MULTIMODAL] 🔍 Item IDs range: {item_ids.min().item()} to {item_ids.max().item()}")
+            print(f"[MULTIMODAL] Debug info:")
+            print(f"[MULTIMODAL] Text embeddings shape: {self.text_embeddings.shape}")
+            print(f"[MULTIMODAL] Image embeddings shape: {self.image_embeddings.shape}")
+            print(f"[MULTIMODAL] Dataset n_items: {self.dataset.n_items}")
+            print(f"[MULTIMODAL] Item IDs range: {item_ids.min().item()} to {item_ids.max().item()}")
         
-        # 为每个批次中的商品获取对应的嵌入
+        # Get corresponding embeddings for each item in each batch
         for b in range(batch_size):
             for s in range(seq_len):
                 item_id = item_ids[b, s].item()
-                # 修复索引问题：item_id应该是1到n_items，嵌入表索引是0到n_items-1
+                # Fix index issue: item_id should be 1..n_items, while embedding index is 0..n_items-1
                 if item_id > 0 and item_id <= self.dataset.n_items:
-                    # 获取文本嵌入
-                    text_emb[b, s] = self.text_embeddings[item_id - 1]  # 转换为0-based索引
-                    # 获取图片嵌入 - 使用CLIP映射
+                    # Get text embedding
+                    text_emb[b, s] = self.text_embeddings[item_id - 1]  # Convert to 0-based index
+                    # Get image embedding - use CLIP mapping
                     item_id_str = str(item_id)
                     if hasattr(self, 'clip_mapping') and item_id_str in self.clip_mapping:
                         clip_idx = self.clip_mapping[item_id_str]
                         image_emb[b, s] = self.image_embeddings[clip_idx]
                         valid_embeddings += 1
                     else:
-                        # 如果没有CLIP映射，使用默认索引（可能不准确）
+                        # If CLIP mapping is unavailable, use default index (may be inaccurate)
                         if item_id - 1 < self.image_embeddings.shape[0]:
                             image_emb[b, s] = self.image_embeddings[item_id - 1]
                             valid_embeddings += 1
         
-        # 打印融合统计信息（只在第一个batch时打印）
+        # Print fusion statistics (only for the first batch)
         if not hasattr(self, '_first_batch_logged'):
-            print(f"[MULTIMODAL] 🔄 Fusion stats: {valid_embeddings}/{total_positions} valid embeddings")
-            print(f"[MULTIMODAL] 🔄 Text embedding sample: {text_emb[0, 0, :5]}")
-            print(f"[MULTIMODAL] 🔄 Image embedding sample: {image_emb[0, 0, :5]}")
-            print(f"[MULTIMODAL] 🔄 Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
-            print(f"[MULTIMODAL] 🔄 Image embedding norm: {torch.norm(image_emb[0, 0]):.4f}")
+            print(f"[MULTIMODAL] Fusion stats: {valid_embeddings}/{total_positions} valid embeddings")
+            print(f"[MULTIMODAL] Text embedding sample: {text_emb[0, 0, :5]}")
+            print(f"[MULTIMODAL] Image embedding sample: {image_emb[0, 0, :5]}")
+            print(f"[MULTIMODAL] Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
+            print(f"[MULTIMODAL] Image embedding norm: {torch.norm(image_emb[0, 0]):.4f}")
             self._first_batch_logged = True
         
-        # 直接拼接融合（不加权）
-        # 注释掉加权融合代码 - 改为直接拼接融合
+        # Direct concatenation fusion (unweighted)
+        # Comment out weighted fusion code - switch to direct concatenation fusion
         # weights = F.softmax(self.modality_weights, dim=0)
         # weighted_id = weights[0] * id_embeddings
         # weighted_text = weights[1] * text_emb
         # weighted_image = weights[2] * image_emb
         
-        # 直接拼接所有模态（不加权）
-        # 原实现（包含文本模态）因“融合时去掉文本模态”的需求被注释：
+        # Directly concatenate all modalities (unweighted)
+        # Original implementation (with text modality) was commented out due to
+        # the requirement to remove text modality during fusion:
         # fused_embeddings = torch.cat([id_embeddings, text_emb, image_emb], dim=-1)
-        # 仅拼接 ID + 图片（因去掉文本模态）
+        # Concatenate only ID + image (text modality removed)
         fused_embeddings = torch.cat([id_embeddings, image_emb], dim=-1)
         
-        # 通过融合层
+        # Pass through fusion layer
         fused_embeddings = self.modality_fusion(fused_embeddings)
         
         return fused_embeddings
 
     def forward(self, batch: dict, return_loss=True) -> torch.Tensor:
-        # 获取ID模态嵌入
+        # Get ID-modality embeddings
         input_tokens = self.item_id2tokens[batch['input_ids']]
         id_embeddings = self.gpt2.wte(input_tokens).mean(dim=-2)
         
-        # 真正的多模态融合，传入batch参数
+        # Actual multimodal fusion with batch input
         fused_embeddings = self._simple_fuse_modalities(id_embeddings, batch)
         
-        # 通过GPT-2
+        # Pass through GPT-2
         outputs = self.gpt2(inputs_embeds=fused_embeddings, attention_mask=batch['attention_mask'])
         
-        # 生成最终状态
+        # Generate final states
         final_states = [self.pred_heads[i](outputs.last_hidden_state).unsqueeze(-2) for i in range(self.n_pred_head)]
         final_states = torch.cat(final_states, dim=-2)
         outputs.final_states = final_states
@@ -282,7 +280,7 @@ class MultimodalRPGSimple(AbstractModel):
 
     def generate(self, batch, n_return_sequences=1):
         """
-        生成函数，返回 top-k 物品的 Codebook 序列
+        Generation function that returns top-k item Codebook sequences
         """
         outputs = self.forward(batch, return_loss=False)
         last_step_indices = (batch['seq_lens'] - 1).view(-1, 1, 1, 1).expand(-1, 1, self.n_pred_head, self.config['n_embd'])
@@ -306,10 +304,10 @@ class MultimodalRPGSimple(AbstractModel):
         item_code_logits = torch.gather(input=expanded_logits, dim=2, index=expanded_indices)
         item_scores = item_code_logits.sum(dim=-1)
         
-        # 得到 top-k 物品的 ID (1-based)
+        # Get top-k item IDs (1-based)
         topk_item_ids = item_scores.topk(n_return_sequences, dim=-1).indices + 1
         
-        # 使用 top-k item ID 从查找表中获取它们对应的 codebook 序列
+        # Use top-k item IDs to fetch their corresponding codebook sequences from the lookup table
         predicted_codebooks = self.item_id2tokens[topk_item_ids]
         
         return predicted_codebooks

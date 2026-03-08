@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import yaml
 import numpy as np
 
-# 导入图片处理模块
+# Import image processing module
 from .image_processor import ImageProcessor
 
 
@@ -25,7 +25,7 @@ class AmazonDataProcessor:
         self.cache_dir = os.path.join(cache_dir, 'AmazonReviews2014', category)
         self.raw_dir = os.path.join(self.cache_dir, 'raw')
         self.processed_dir = os.path.join(self.cache_dir, 'processed')
-        # 新增：图片相关目录
+        # Added: image-related directories
         self.images_dir = os.path.join(self.cache_dir, 'images')
         self.img_emb_dir = os.path.join(self.processed_dir, 'image_embeddings')
         
@@ -34,27 +34,27 @@ class AmazonDataProcessor:
             'sent_emb_model': 'text-embedding-3-large',
             'sent_emb_dim': 3072,
             'sent_emb_batch_size': 100,
-            'sent_emb_pca': 1280,  # 修改：使用1280维PCA降维，与RPG配置匹配
+            'sent_emb_pca': 1280,  
             'n_codebook': 32,
             'codebook_size': 256,
             'faiss_omp_num_threads': 16,
             'opq_use_gpu': False,
             'opq_gpu_id': 0,
             'openai_api_key': None,
-            # 新增：图片处理配置
-            'img_emb_model': 'clip-vit-base-patch32',  # 图片嵌入模型
-            'img_emb_dim': 1280,  # 图片嵌入维度
-            'img_emb_batch_size': 32,  # 图片批处理大小
-            'img_emb_pca': 256,  # 图片PCA降维
-            'download_images': True,  # 是否下载图片
-            'image_size': 224,  # 图片尺寸
-            'max_images_per_item': 5,  # 每个商品最大图片数量
+            # Added: image processing configuration
+            'img_emb_model': 'clip-vit-base-patch32',  # Image embedding model
+            'img_emb_dim': 1280,  # Image embedding dimension
+            'img_emb_batch_size': 32,  # Image batch size
+            'img_emb_pca': 256,  # Image PCA dimension
+            'download_images': True,  # Whether to download images
+            'image_size': 224,  # Image size
+            'max_images_per_item': 5,  # Maximum number of images per item
         }
         
         self.config = self._load_config(config_path, config)
         os.makedirs(self.raw_dir, exist_ok=True)
         os.makedirs(self.processed_dir, exist_ok=True)
-        # 新增：创建图片相关目录
+        # Added: create image-related directories
         os.makedirs(self.images_dir, exist_ok=True)
         os.makedirs(self.img_emb_dir, exist_ok=True)
         
@@ -87,16 +87,16 @@ class AmazonDataProcessor:
             
         print(f"Downloading: {url}")
         
-        # 方案1：增加超时和重试机制，使用更大的chunk_size
+        # Method 1: increase timeout and retry mechanism with larger chunk size
         session = requests.Session()
         session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
         
-        # 尝试多种下载方式
+        # Try multiple download methods
         download_success = False
         
-        # 方式1：使用requests with larger chunk size
+        # Method 1: use requests with larger chunk size
         try:
             print("Trying method 1: requests with larger chunk size...")
             response = session.get(url, stream=True, timeout=30)
@@ -110,7 +110,7 @@ class AmazonDataProcessor:
                 unit_scale=True,
                 unit_divisor=1024,
             ) as pbar:
-                for chunk in response.iter_content(chunk_size=65536):  # 增大chunk size到64KB
+                for chunk in response.iter_content(chunk_size=65536):  # Increase chunk size to 64KB
                     if chunk:
                         f.write(chunk)
                         pbar.update(len(chunk))
@@ -118,7 +118,7 @@ class AmazonDataProcessor:
         except Exception as e:
             print(f"Method 1 failed: {e}")
         
-        # 方式2：使用wget (如果可用)
+        # Method 2: use wget (if available)
         if not download_success:
             try:
                 print("Trying method 2: wget...")
@@ -133,7 +133,7 @@ class AmazonDataProcessor:
             except Exception as e:
                 print(f"Method 2 failed: {e}")
         
-        # 方式3：使用curl (如果可用)
+        # Method 3: use curl (if available)
         if not download_success:
             try:
                 print("Trying method 3: curl...")
@@ -151,12 +151,12 @@ class AmazonDataProcessor:
         if not download_success:
             raise Exception("All download methods failed")
         
-        # 验证下载的文件完整性
+        # Verify integrity of downloaded file
         try:
             if local_path.endswith('.gz'):
                 import gzip
                 with gzip.open(local_path, 'r') as f:
-                    f.read(1024)  # 尝试读取一小部分验证文件完整性
+                    f.read(1024)  # Try reading a small chunk to verify file integrity
                 print("File integrity verified")
         except Exception as e:
             print(f"File integrity check failed: {e}")
@@ -165,25 +165,25 @@ class AmazonDataProcessor:
             raise Exception("Downloaded file is corrupted")
     
     def _download_raw(self, data_type: str = 'reviews') -> str:
-        # 尝试多个镜像源
+        # Try multiple mirror sources
         mirrors = [
             f'https://snap.stanford.edu/data/amazon/productGraph/categoryFiles/{data_type}_{self.category}{"_5" if data_type == "reviews" else ""}.json.gz',
-            # 可以添加其他镜像源，如果有的话
+            # Add more mirror sources here if available
         ]
         
         base_name = os.path.basename(mirrors[0])
         local_filepath = os.path.join(self.raw_dir, base_name)
         
         if not os.path.exists(local_filepath):
-            # 尝试从多个镜像下载
+            # Try downloading from multiple mirrors
             for i, url in enumerate(mirrors):
                 try:
                     print(f"Trying mirror {i+1}/{len(mirrors)}: {url}")
                     self.download_file(url, local_filepath)
-                    break  # 如果成功下载，跳出循环
+                    break  # Exit loop if download succeeds
                 except Exception as e:
                     print(f"Mirror {i+1} failed: {e}")
-                    if i == len(mirrors) - 1:  # 如果是最后一个镜像
+                    if i == len(mirrors) - 1:  # If this is the last mirror
                         raise Exception(f"All mirrors failed for {base_name}")
                     continue
         
@@ -334,16 +334,16 @@ class AmazonDataProcessor:
         if process_mode == 'sentence':
             item2meta = self._extract_meta_sentences(metadata=item2meta)
         elif process_mode == 'multimodal':
-            # 多模态模式：保留原始元数据，但为文本嵌入提取文本
+            # Multimodal mode: keep raw metadata, but extract text for text embeddings
             print('[MULTIMODAL] Processing metadata for multimodal (text + images)')
-            # 为文本嵌入生成文本描述
+            # Generate text descriptions for text embeddings
             item2meta_text = self._extract_meta_sentences(metadata=item2meta)
-            # 保存文本版本用于嵌入
+            # Save text version for embedding generation
             text_meta_file = os.path.join(self.processed_dir, 'metadata.sentence.json')
             with open(text_meta_file, 'w') as f:
                 json.dump(item2meta_text, f)
             print('[MULTIMODAL] Text metadata saved for embeddings')
-            # 保留原始元数据用于多模态处理
+            # Keep raw metadata for multimodal processing
             pass
         
         with open(meta_file, 'w') as f:
@@ -354,7 +354,7 @@ class AmazonDataProcessor:
     def _encode_sent_emb(self, output_path: str) -> np.ndarray:
         print('[TOKENIZER] Encoding sentence embeddings...')
         
-        # 对于多模态模式，使用文本版本的元数据
+        # For multimodal mode, use the text version of metadata
         if self.config['metadata'] == 'multimodal':
             text_meta_file = os.path.join(self.processed_dir, 'metadata.sentence.json')
             if os.path.exists(text_meta_file):
@@ -368,7 +368,7 @@ class AmazonDataProcessor:
             text_metadata = self.item2meta
         
         meta_sentences = []
-        # 为PAD token生成一个零向量占位符
+        # Create a zero-vector placeholder for PAD token
         pad_embedding = np.zeros(self.config['sent_emb_dim'], dtype=np.float32)
         
         for i in range(1, len(self.id_mapping['id2item'])):
@@ -405,7 +405,7 @@ class AmazonDataProcessor:
                 client = OpenAI(**client_kwargs)
                 
                 sent_embs = []
-                max_retries = 3  # 增加重试次数
+                max_retries = 3  # Increase retry count
                 for i in tqdm(range(0, len(meta_sentences), self.config['sent_emb_batch_size']), desc='Encoding'):
                     batch = meta_sentences[i:i + self.config['sent_emb_batch_size']]
                     retry_count = 0
@@ -426,7 +426,7 @@ class AmazonDataProcessor:
                             print(f'Encoding failed {i} - {i + self.config["sent_emb_batch_size"]} (attempt {retry_count}/{max_retries}): {e}')
                             
                             if retry_count < max_retries:
-                                # 处理文本长度问题
+                                # Handle text-length issues
                                 new_batch = []
                                 for sent in batch:
                                     if len(sent) > 8000:
@@ -436,9 +436,9 @@ class AmazonDataProcessor:
                                 
                                 print(f'[TOKENIZER] Retrying batch {i} - {i + self.config["sent_emb_batch_size"]} with shorter texts...')
                                 import time
-                                time.sleep(5 * retry_count)  # 递增等待时间
+                                time.sleep(5 * retry_count)  # Incremental waiting time
                                 
-                                batch = new_batch  # 使用处理后的批次
+                                batch = new_batch  # Use processed batch
                             else:
                                 print(f'All retries failed for batch {i} - {i + self.config["sent_emb_batch_size"]}')
                                 raise e
@@ -469,56 +469,56 @@ class AmazonDataProcessor:
             print('[TOKENIZER] Skipping embedding generation, metadata is not in sentence or multimodal mode')
             return
         
-        # 检查是否已经存在文本embedding文件
+        # Check whether text embedding file already exists
         sent_emb_path = os.path.join(
             self.processed_dir,
             f'{os.path.basename(self.config["sent_emb_model"])}.sent_emb'
         )
         
         if os.path.exists(sent_emb_path):
-            print(f'[TOKENIZER] ✅ Text embeddings already exist: {sent_emb_path}')
+            print(f'[TOKENIZER] Text embeddings already exist: {sent_emb_path}')
             
-            # 检查是否需要重新生成PCA嵌入
+            # Check whether PCA embeddings need to be regenerated
             pca_emb_path = os.path.join(self.processed_dir, f'final_pca_embeddings_{self.config["sent_emb_pca"]}d.npy')
             default_pca_path = os.path.join(self.processed_dir, 'final_pca_embeddings.npy')
             need_regenerate = False
             
             if self.config['sent_emb_pca'] > 0:
-                # 优先检查带维度的文件名
+                # Prefer checking dimension-specific filename first
                 if os.path.exists(pca_emb_path):
                     try:
                         # import numpy as np
                         existing_pca = np.load(pca_emb_path)
                         if existing_pca.shape[1] == self.config['sent_emb_pca']:
-                            print(f'[TOKENIZER] ✅ PCA embeddings already exist with correct dimension: {existing_pca.shape}')
-                            print('[TOKENIZER] ✅ Skipping embedding generation')
+                            print(f'[TOKENIZER] PCA embeddings already exist with correct dimension: {existing_pca.shape}')
+                            print('[TOKENIZER] Skipping embedding generation')
                             return
                         else:
-                            print(f'[TOKENIZER] ⚠️ Existing PCA embeddings dimension mismatch: {existing_pca.shape[1]} vs {self.config["sent_emb_pca"]}')
+                            print(f'[TOKENIZER] Existing PCA embeddings dimension mismatch: {existing_pca.shape[1]} vs {self.config["sent_emb_pca"]}')
                             need_regenerate = True
                     except Exception as e:
-                        print(f'[TOKENIZER] ⚠️ Error checking existing PCA embeddings: {e}')
+                        print(f'[TOKENIZER] Error checking existing PCA embeddings: {e}')
                         need_regenerate = True
-                # 如果带维度的文件不存在，检查默认文件
+                # If dimension-specific file does not exist, check default file
                 elif os.path.exists(default_pca_path):
                     try:
                         # import numpy as np
                         existing_pca = np.load(default_pca_path)
                         if existing_pca.shape[1] == self.config['sent_emb_pca']:
-                            print(f'[TOKENIZER] ✅ Default PCA embeddings have correct dimension: {existing_pca.shape}')
-                            print('[TOKENIZER] ⚠️ But dimension-specific file is missing, will generate it')
+                            print(f'[TOKENIZER] Default PCA embeddings have correct dimension: {existing_pca.shape}')
+                            print('[TOKENIZER] But dimension-specific file is missing, will generate it')
                             need_regenerate = True
                         else:
-                            print(f'[TOKENIZER] ⚠️ Default PCA embeddings dimension mismatch: {existing_pca.shape[1]} vs {self.config["sent_emb_pca"]}')
+                            print(f'[TOKENIZER] Default PCA embeddings dimension mismatch: {existing_pca.shape[1]} vs {self.config["sent_emb_pca"]}')
                             need_regenerate = True
                     except Exception as e:
-                        print(f'[TOKENIZER] ⚠️ Error checking default PCA embeddings: {e}')
+                        print(f'[TOKENIZER] Error checking default PCA embeddings: {e}')
                         need_regenerate = True
                 else:
-                    print('[TOKENIZER] ⚠️ PCA embeddings not found, will generate new ones')
+                    print('[TOKENIZER] PCA embeddings not found, will generate new ones')
                     need_regenerate = True
             else:
-                print('[TOKENIZER] ✅ Skipping text embedding generation')
+                print('[TOKENIZER] Skipping text embedding generation')
                 return
             
             if not need_regenerate:
@@ -534,7 +534,7 @@ class AmazonDataProcessor:
             return
         
 
-        # 如果文本嵌入已存在且只需要重新生成PCA，直接加载
+        # If text embeddings already exist and only PCA regeneration is needed, load directly
         if os.path.exists(sent_emb_path) and need_regenerate:
             print('[TOKENIZER] Loading existing text embeddings for PCA regeneration...')
             # import numpy as np
@@ -552,16 +552,16 @@ class AmazonDataProcessor:
                 pca = PCA(n_components=self.config['sent_emb_pca'], whiten=True)
                 sent_embs = pca.fit_transform(sent_embs)
                 
-                # 为PAD token添加零向量嵌入
+                # Add zero-vector embedding for PAD token
                 pad_embedding_pca = np.zeros(self.config['sent_emb_pca'], dtype=np.float32)
                 sent_embs = np.vstack([pad_embedding_pca, sent_embs])
                 
-                # 生成包含维度的文件名
+                # Generate dimension-specific filename
                 pca_emb_path = os.path.join(self.processed_dir, f'final_pca_embeddings_{self.config["sent_emb_pca"]}d.npy')
                 np.save(pca_emb_path, sent_embs)
                 print(f'[TOKENIZER] PCA embeddings saved to: {pca_emb_path}')
                 
-                # 同时保存一个默认名称的文件，保持兼容性
+                # Also save a default filename for compatibility
                 default_pca_path = os.path.join(self.processed_dir, 'final_pca_embeddings.npy')
                 np.save(default_pca_path, sent_embs)
                 print(f'[TOKENIZER] Default PCA embeddings also saved to: {default_pca_path}')
@@ -580,7 +580,7 @@ class AmazonDataProcessor:
         for item_id, meta in tqdm(metadata.items(), desc='Extracting image URLs'):
             image_urls = []
             
-            # 检查不同的图片字段
+            # Check different image fields
             if 'image' in meta:
                 if isinstance(meta['image'], list):
                     image_urls.extend(meta['image'])
@@ -593,7 +593,7 @@ class AmazonDataProcessor:
                 elif isinstance(meta['images'], str):
                     image_urls.append(meta['images'])
             
-            # 限制每个商品的图片数量
+            # Limit number of images per item
             max_images = self.config.get('max_images_per_item', 5)
             image_urls = image_urls[:max_images]
             
@@ -619,20 +619,20 @@ class AmazonDataProcessor:
             item_paths = []
             for i, url in enumerate(image_urls):
                 try:
-                    # 生成图片文件名
-                    file_ext = '.jpg'  # 默认扩展名
+                    # Generate image filename
+                    file_ext = '.jpg'  # Default extension
                     if '.' in url.split('/')[-1]:
                         file_ext = '.' + url.split('/')[-1].split('.')[-1]
                     
                     image_filename = f'image_{i}{file_ext}'
                     image_path = os.path.join(item_image_dir, image_filename)
                     
-                    # 如果文件已存在，跳过下载
+                    # If file already exists, skip download
                     if os.path.exists(image_path):
                         item_paths.append(image_path)
                         continue
                     
-                    # 下载图片
+                    # Download image
                     response = requests.get(url, timeout=30, stream=True)
                     response.raise_for_status()
                     
@@ -668,7 +668,7 @@ class AmazonDataProcessor:
             print('[MULTIMODAL] Please install required packages: pip install pillow torch transformers')
             return None
         
-        # 加载CLIP模型
+        # Load CLIP model
         model_name = self.config.get('img_emb_model', 'openai/clip-vit-base-patch32')
         try:
             processor = CLIPProcessor.from_pretrained(model_name)
@@ -679,7 +679,7 @@ class AmazonDataProcessor:
             print(f'[MULTIMODAL] Failed to load CLIP model: {e}')
             return None
         
-        # 准备图片路径列表和对应的item IDs
+        # Prepare image path list and corresponding item IDs
         all_image_paths = []
         item_ids = []
         
@@ -693,7 +693,7 @@ class AmazonDataProcessor:
             print('[MULTIMODAL] No valid images found')
             return None
         
-        # 批量处理图片
+        # Batch-process images
         batch_size = self.config.get('img_emb_batch_size', 32)
         image_embeddings = []
         processed_item_ids = []
@@ -703,14 +703,14 @@ class AmazonDataProcessor:
             batch_item_ids = item_ids[i:i + batch_size]
             
             try:
-                # 加载和预处理图片
+                # Load and preprocess images
                 images = []
                 valid_indices = []
                 
                 for j, image_path in enumerate(batch_paths):
                     try:
                         image = Image.open(image_path).convert('RGB')
-                        image = image.resize((224, 224))  # 调整尺寸
+                        image = image.resize((224, 224))  # Resize
                         images.append(image)
                         valid_indices.append(j)
                     except Exception as e:
@@ -720,16 +720,16 @@ class AmazonDataProcessor:
                 if not images:
                     continue
                 
-                # 处理图片
+                # Process images
                 inputs = processor(images=images, return_tensors="pt", padding=True)
                 inputs = {k: v.to(device) for k, v in inputs.items()}
                 
-                # 生成嵌入
+                # Generate embeddings
                 with torch.no_grad():
                     image_features = model.get_image_features(**inputs)
                     image_features = image_features.cpu().numpy()
                 
-                # 添加到结果中
+                # Append to results
                 for j, idx in enumerate(valid_indices):
                     image_embeddings.append(image_features[j])
                     processed_item_ids.append(batch_item_ids[idx])
@@ -742,14 +742,14 @@ class AmazonDataProcessor:
             print('[MULTIMODAL] No image embeddings generated')
             return None
         
-        # 转换为numpy数组
+        # Convert to numpy array
         image_embeddings = np.array(image_embeddings, dtype=np.float32)
         
-        # 保存原始嵌入
+        # Save raw embeddings
         img_emb_path = os.path.join(self.img_emb_dir, 'raw_image_embeddings.npy')
         np.save(img_emb_path, image_embeddings)
         
-        # 保存item ID映射
+        # Save item ID mapping
         img_id_mapping_path = os.path.join(self.img_emb_dir, 'image_item_ids.json')
         with open(img_id_mapping_path, 'w') as f:
             json.dump(processed_item_ids, f)
@@ -767,32 +767,32 @@ class AmazonDataProcessor:
         
         print('\n=== Step 4: Process multimodal data (text + images) ===')
         
-        # 检查是否已经存在CLIP embedding文件
+        # Check whether CLIP embedding files already exist
         clip_emb_file = os.path.join(self.img_emb_dir, 'image_embeddings_clip-vit-base-patch32.npy')
         clip_mapping_file = os.path.join(self.img_emb_dir, 'image_embeddings_clip-vit-base-patch32_mapping.json')
         
         if os.path.exists(clip_emb_file) and os.path.exists(clip_mapping_file):
-            print('[MULTIMODAL] ✅ CLIP image embeddings already exist, skipping multimodal processing')
-            print(f'[MULTIMODAL] ✅ CLIP embeddings: {clip_emb_file}')
-            print(f'[MULTIMODAL] ✅ CLIP mapping: {clip_mapping_file}')
+            print('[MULTIMODAL] CLIP image embeddings already exist, skipping multimodal processing')
+            print(f'[MULTIMODAL] CLIP embeddings: {clip_emb_file}')
+            print(f'[MULTIMODAL] CLIP mapping: {clip_mapping_file}')
             return
         
-        # 检查元数据是否存在
+        # Check whether metadata exists
         if not self.item2meta:
             print('[MULTIMODAL] No metadata available for multimodal processing')
             return
         
-        # 提取图片URL
+        # Extract image URLs
         item2images = self._extract_image_urls(self.item2meta)
         
-        # 下载图片
+        # Download images
         item2image_paths = self._download_images(item2images)
         
-        # 生成图片嵌入
+        # Generate image embeddings
         if item2image_paths:
             image_embeddings = self._encode_image_emb(item2image_paths)
             
-            # 应用PCA降维
+            # Apply PCA dimensionality reduction
             if image_embeddings is not None and self.config.get('img_emb_pca', 0) > 0:
                 print(f'[MULTIMODAL] Applying PCA to image embeddings...')
                 try:
@@ -840,7 +840,7 @@ class AmazonDataProcessor:
         print(f"Raw data: {self.raw_dir}")
         print(f"Processed data: {self.processed_dir}")
         
-        # 注释掉文件结构输出，避免输出大量图片文件名
+        # Comment out file-structure output to avoid printing a large number of image filenames
         # print("\nGenerated files:")
         # for root, dirs, files in os.walk(self.cache_dir):
         #     level = root.replace(self.cache_dir, '').count(os.sep)
@@ -854,26 +854,26 @@ class AmazonDataProcessor:
         """处理图片嵌入"""
         print("[IMAGE] Starting image embedding processing...")
         
-        # 检查是否已经存在CLIP embedding文件
+        # Check whether CLIP embedding files already exist
         clip_emb_file = os.path.join(self.img_emb_dir, 'image_embeddings_clip-vit-base-patch32.npy')
         clip_mapping_file = os.path.join(self.img_emb_dir, 'image_embeddings_clip-vit-base-patch32_mapping.json')
         
         if os.path.exists(clip_emb_file) and os.path.exists(clip_mapping_file):
-            print("[IMAGE] ✅ CLIP image embeddings already exist, skipping image processing")
-            print(f"[IMAGE] ✅ CLIP embeddings: {clip_emb_file}")
-            print(f"[IMAGE] ✅ CLIP mapping: {clip_mapping_file}")
+            print("[IMAGE] CLIP image embeddings already exist, skipping image processing")
+            print(f"[IMAGE] CLIP embeddings: {clip_emb_file}")
+            print(f"[IMAGE] CLIP mapping: {clip_mapping_file}")
             return
         
-        # 初始化图片处理器
+        # Initialize image processor
         image_processor = ImageProcessor(self.config)
         
-        # 获取所有商品ID
+        # Get all item IDs
         item_ids = list(self.id_mapping['item2id'].keys())
         item_ids = [item_id for item_id in item_ids if item_id != '[PAD]']
         
         print(f"[IMAGE] Processing {len(item_ids)} items...")
         
-        # 运行图片处理流程
+        # Run image processing pipeline
         try:
             image_emb_filepath = image_processor.run_full_pipeline(item_ids)
             print(f"[IMAGE] Image embeddings saved to: {image_emb_filepath}")
@@ -881,17 +881,17 @@ class AmazonDataProcessor:
             print(f"[IMAGE] Error processing image embeddings: {e}")
             print("[IMAGE] Will continue with random vectors as placeholders")
             
-            # 生成随机向量作为占位符
+            # Generate random vectors as placeholders
             random_embeddings = {}
             for item_id in item_ids:
                 random_embeddings[item_id] = np.random.normal(0, 1, self.config.get('img_emb_dim', 1280))
             
-            # 保存随机向量
+            # Save random vectors
             embeddings_array = np.array([random_embeddings[item_id] for item_id in item_ids])
             random_filepath = os.path.join(self.img_emb_dir, f"image_embeddings_random.npy")
             np.save(random_filepath, embeddings_array)
             
-            # 保存映射
+            # Save mapping
             mapping_filepath = os.path.join(self.img_emb_dir, f"image_embeddings_random_mapping.json")
             with open(mapping_filepath, 'w') as f:
                 json.dump({str(i): item_id for i, item_id in enumerate(item_ids)}, f)
@@ -949,7 +949,7 @@ def main():
         'metadata': args.metadata
     }
     
-    # 如果指定了PCA维度，添加到配置覆盖中
+    # If PCA dimension is specified, add it to config overrides
     if args.sent_emb_pca is not None:
         config_override['sent_emb_pca'] = args.sent_emb_pca
     

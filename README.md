@@ -1,10 +1,10 @@
 ## 🚀 Quick Start
 
+#### Step 1: Extract Embeddings
 
+Note: We place the trained code indices under cache/, so you can skip Step 1 and Step 2 and directly run the generative model training.  If you want to re-extract embeddings, please change MODEL_PATH in preprocess/encode_items.py to the path of the pretrained language model on your machine (e.g., sentence-t5-base).
 
-#### Step 1: Extract Semantic Embeddings
-
-Generate semantic embeddings for target and collaborative items:
+Generate embeddings for target and collaborative items:
 
 ```bash
 python3 -m preprocess.build_prompt --category Beauty
@@ -49,15 +49,24 @@ We also implement CSA as a light-weight plug-and-play module and evaluate its pe
 csa-plug-and-play/readme.md
 ```
 
-This supplementary experiment is built upon the official open-source codebase of LIGER: https://github.com/facebookresearch/liger
+This experiment is built upon the official open-source codebase of [LIGER](https://github.com/facebookresearch/liger) (including code for TIGER and LIGER)
 
-Our wrapped CSA module is located at:
+Our wrapped module is located at:
 
 ```
 csa-plug-and-play/src/csa_module
 ```
 
 ---
+### Acknowledgement
+
+For the generative stage in the main experiments, we use the basic environment and code from [RPG](https://github.com/facebookresearch/RPG_KDD2025) (e.g., the dataloader, evaluation, basic pipeline and trainer).
+
+For extracting basic item textual information and similar items, we use the processed data from [GRAM](https://github.com/skleee/GRAM).
+
+
+---
+
 ### References
 [1] Shashank Rajput, Nikhil Mehta, Anima Singh, Raghunandan Hulikal Keshavan, Trung Vu, Lukasz Heldt, Lichan Hong, Yi Tay, Vinh Tran, Jonah Samost, et al. 2023. Recommender systems with generative retrieval. Advances in Neural Information Processing Systems 36 (2023), 10299–10315.
 

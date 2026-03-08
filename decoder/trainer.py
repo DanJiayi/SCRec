@@ -78,8 +78,8 @@ class Trainer:
             val_dataloader: The dataloader for validation data.
         """
 
-        # 简化配置，不使用wandb
-        project_name = "RPG_RQVAE"
+        # Simplified configuration: do not use wandb
+        project_name = "SCRec_RQVAE"
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         category = self.config.get('category', 'unknown')
         run_name = f"rqvae_{category}_{timestamp}"
@@ -106,7 +106,7 @@ class Trainer:
             self.model, optimizer, train_dataloader, val_dataloader, scheduler
         )
 
-        # 只使用tensorboard，禁用wandb
+        # Use only tensorboard and disable wandb
         self.accelerator.init_trackers(
             project_name=project_name,
             config=config_for_log(self.config),

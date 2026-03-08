@@ -40,7 +40,7 @@ class Pipeline:
             self.config["dataset"],
             self.config["model"]
         )
-        # 禁用wandb以避免网络连接问题
+        # Disable wandb to avoid network connectivity issues
         self.accelerator = Accelerator(log_with='tensorboard', project_dir=self.project_dir)
         self.config['accelerator'] = self.accelerator
 
@@ -56,10 +56,10 @@ class Pipeline:
         self.split_datasets = self.raw_dataset.split()
 
         # Tokenizer
-        # --- 核心改动：我们现在强制使用新的 RQVAETokenizer ---
-        # self.log("Initializing with RQVAETokenizer...")  # 注释掉不必要的日志
+        # --- Core change: force usage of the new RQVAETokenizer ---
+        # self.log("Initializing with RQVAETokenizer...")  # Commented out unnecessary logging
         self.tokenizer = Tokenizer(self.config, self.raw_dataset)
-        # --- 结束 ---
+        # --- End ---
         self.tokenized_datasets = self.tokenizer.tokenize(self.split_datasets)
 
         # Model

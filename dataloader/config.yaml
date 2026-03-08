@@ -1,8 +1,8 @@
-# Amazon Reviews 2014 数据处理完整配置
+# Amazon Reviews 2014
 # ==========================================
 
-# 基本设置
-# 可用类别: Books, Electronics, Movies_and_TV, CDs_and_Vinyl,
+
+# Books, Electronics, Movies_and_TV, CDs_and_Vinyl,
 #          Clothing_Shoes_and_Jewelry, Home_and_Kitchen, Kindle_Store,
 #          Sports_and_Outdoors, Cell_Phones_and_Accessories,
 #          Health_and_Personal_Care, Toys_and_Games, Video_Games,
@@ -10,25 +10,18 @@
 #          Office_Products, Pet_Supplies, Automotive,
 #          Grocery_and_Gourmet_Food, Patio_Lawn_and_Garden, Baby,
 #          Digital_Music, Musical_Instruments, Amazon_Instant_Video
-category: Sports_and_Outdoors  # 修改：从Beauty改为Sports_and_Outdoors数据集
-metadata: multimodal  # none / raw / sentence / multimodal - 修改为多模态（文本+图片+ID）
+category: Sports_and_Outdoors  
+metadata: multimodal  # none / raw / sentence / multimodal 
 split: leave_one_out  # leave_one_out
 
-# 句子嵌入设置
-# 支持的模型:
-#   - sentence-transformers 模型 (如: all-MiniLM-L6-v2)
-#   - OpenAI API 模型 (如: text-embedding-3-large, text-embedding-3-small)
+
 sent_emb_model: text-embedding-3-large
 sent_emb_dim: 3072
 sent_emb_pca: 1280
-openai_api_key: sk-WR6aJpZ81gACet0aN8wXYx0lUfC0WgjjcrFRZAJKatkeuTke
-openai_base_url: https://yunwu.ai/v1
+openai_api_key: ~
+openai_base_url: ~
 
-# 图片嵌入设置
-# 支持的模型:
-#   - clip-vit-base-patch32 (CLIP ViT-B/32)
-#   - clip-vit-large-patch14 (CLIP ViT-L/14)
-#   - 如果CLIP不可用，将使用随机向量作为占位符
+
 img_emb_model: clip-vit-base-patch32
 img_emb_dim: 1280
 img_emb_pca: 256

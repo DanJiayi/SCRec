@@ -46,14 +46,14 @@ class ResBlock(nn.Module):
         return x + self.act(self.linear(x))
 
 
-class RPG(AbstractModel):
+class BaseModel(AbstractModel):
     def __init__(
         self,
         config: dict,
         dataset: AbstractDataset,
         tokenizer: AbstractTokenizer
     ):
-        super(RPG, self).__init__(config, dataset, tokenizer)
+        super(BaseModel, self).__init__(config, dataset, tokenizer)
 
         self.item_id2tokens = self._map_item_tokens().to(self.config['device'])
 

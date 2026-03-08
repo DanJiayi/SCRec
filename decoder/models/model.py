@@ -1,4 +1,4 @@
-# genrec/models/RPG/model.py (最终修正版 2/3)
+
 
 import torch
 import torch.nn as nn
@@ -21,19 +21,19 @@ class ResBlock(nn.Module):
         return x + self.act(self.linear(x))
 
 
-class RPG(AbstractModel):
+class BaseModel(AbstractModel):
     def __init__(
         self,
         config: dict,
         dataset: AbstractDataset,
         tokenizer: AbstractTokenizer
     ):
-        super(RPG, self).__init__(config, dataset, tokenizer)
+        super(BaseModel, self).__init__(config, dataset, tokenizer)
 
         self.rqvae_config = self.config['RQ-VAE']
         self.codebook_size = self.rqvae_config['code_book_size']
 
-        # 核心改动：直接从 tokenizer 引用最终的查找表
+        # Core change: directly reference the final lookup table from tokenizer
         self.item_id2tokens = self.tokenizer.item_id2tokens
 
         gpt2config = GPT2Config(vocab_size=tokenizer.vocab_size, **config)
@@ -44,11 +44,11 @@ class RPG(AbstractModel):
         self.temperature = self.config['temperature']
         self.loss_fct = torch.nn.CrossEntropyLoss(ignore_index=tokenizer.ignored_label)
 
-    # _map_item_tokens 方法已被移除，因为其功能已移至 Tokenizer
+    # The _map_item_tokens method has been removed because its functionality was moved to Tokenizer
 
     @property
     def n_parameters(self) -> str:
-        # ... (此部分代码不变)
+        # ... (this section remains unchanged)
         total_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
         emb_params = sum(p.numel() for p in self.gpt2.get_input_embeddings().parameters() if p.requires_grad)
         return (f'#Embedding parameters: {emb_params}\n'
@@ -56,7 +56,7 @@ class RPG(AbstractModel):
                 f'#Total trainable parameters: {total_params}\n')
 
     def forward(self, batch: dict, return_loss=True) -> torch.Tensor:
-        # ... (此部分代码不变，它已经可以正确处理输入)
+        # ... (this section remains unchanged; it already handles input correctly)
         input_tokens = self.item_id2tokens[batch['input_ids']]
         input_embs = self.gpt2.wte(input_tokens).mean(dim=-2)
         outputs = self.gpt2(inputs_embeds=input_embs, attention_mask=batch['attention_mask'])
@@ -80,7 +80,7 @@ class RPG(AbstractModel):
 
     def generate(self, batch, n_return_sequences=1):
         """
-        生成函数被重写，以返回 top-k 物品的 Codebook 序列，而不是它们的 ID。
+        The generation function is overridden to return Codebook sequences of top-k items instead of their IDs.
         """
         outputs = self.forward(batch, return_loss=False)
         last_step_indices = (batch['seq_lens'] - 1).view(-1, 1, 1, 1).expand(-1, 1, self.n_pred_head, self.config['n_embd'])
@@ -104,10 +104,10 @@ class RPG(AbstractModel):
         item_code_logits = torch.gather(input=expanded_logits, dim=2, index=expanded_indices)
         item_scores = item_code_logits.sum(dim=-1)
         
-        # 得到 top-k 物品的 ID (1-based)
+        # Get top-k item IDs (1-based)
         topk_item_ids = item_scores.topk(n_return_sequences, dim=-1).indices + 1
         
-        # 核心改动：使用 top-k item ID 从查找表中获取它们对应的 codebook 序列
+        # Core change: use top-k item IDs to fetch their corresponding codebook sequences from the lookup table
         predicted_codebooks = self.item_id2tokens[topk_item_ids]
         
         return predicted_codebooks

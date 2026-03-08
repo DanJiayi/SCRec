@@ -59,66 +59,66 @@ def get_command_line_args_str():
     return '_'.join(sys.argv).replace('/', '|')
 
 
-# --- MODIFICATION START: get_file_name 函数的完整替换 ---
+# --- MODIFICATION START: full replacement of get_file_name function ---
 def get_file_name(config: dict, suffix: str = ''):
-    # 1. 生成一个基于完整配置的短哈希，确保唯一性
-    #    这个哈希是用来区分不同参数组合的最终标识符
-    config_hash = hashlib.md5(str(config).encode(encoding="utf-8")).hexdigest()[:8] # 使用8位哈希
+    # 1. Generate a short hash based on the full config to ensure uniqueness
+    #    This hash is the final identifier used to distinguish different parameter combinations
+    config_hash = hashlib.md5(str(config).encode(encoding="utf-8")).hexdigest()[:8] # Use 8-digit hash
 
-    # 2. 构建一个简洁、可读的文件名前缀
-    #    包含模型、数据集、类别以及主要的Sweep参数，以便一眼识别
+    # 2. Build a concise and readable filename prefix
+    #    Include model, dataset, category, and major sweep parameters for quick identification
     parts = []
     if 'model' in config:
         parts.append(config['model'])
     if 'dataset' in config:
         parts.append(config['dataset'])
-    if 'category' in config: # 数据集类别通常是一个重要的区分符
+    if 'category' in config: # Dataset category is usually an important discriminator
         parts.append(config['category'])
     
-    # 添加主要 Sweep 参数，确保它们的值在文件名中简洁表示 (替换小数点等)
-    # 检查这些键是否存在，以避免KeyError
+    # Add major sweep parameters and keep values concise in filename (replace decimal points, etc.)
+    # Check key existence to avoid KeyError
     if 'lr' in config:
-        parts.append(f"lr{str(config['lr']).replace('.', 'p')}") # 例如: lr0p0003
+        parts.append(f"lr{str(config['lr']).replace('.', 'p')}") # e.g.: lr0p0003
     if 'n_codebook' in config:
-        parts.append(f"ncb{config['n_codebook']}") # 例如: ncb32
+        parts.append(f"ncb{config['n_codebook']}") # e.g.: ncb32
     if 'temperature' in config:
-        parts.append(f"temp{str(config['temperature']).replace('.', 'p')}") # 例如: temp0p07
+        parts.append(f"temp{str(config['temperature']).replace('.', 'p')}") # e.g.: temp0p07
     if 'n_edges' in config:
-        parts.append(f"ne{config['n_edges']}") # 例如: ne100
+        parts.append(f"ne{config['n_edges']}") # e.g.: ne100
     if 'propagation_steps' in config:
-        parts.append(f"ps{config['propagation_steps']}") # 例如: ps3
+        parts.append(f"ps{config['propagation_steps']}") # e.g.: ps3
 
-    # 如果没有特定的参数来构建前缀，则使用run_id作为基础
+    # If no specific parameters are available to build a prefix, use run_id as the base
     if not parts:
         base_filename = config.get('run_id', 'run')
     else:
         base_filename = "_".join(parts)
     
-    # 3. 组合文件名：[基本前缀]-[本地时间]-[配置哈希][后缀]
-    # 这样既有可读性，又有时间戳和哈希保证唯一性
+    # 3. Compose filename: [base_prefix]-[local_time]-[config_hash][suffix]
+    # This keeps readability while ensuring uniqueness with timestamp and hash
     logfilename = "{}-{}-{}{}".format(
         base_filename,
-        config['run_local_time'], # 例如: Jun-21-2025_01-50
+        config['run_local_time'], # e.g.: Jun-21-2025_01-50
         config_hash,
         suffix
     )
 
-    # 4. 对最终文件名进行长度检查和截断，确保它远低于文件系统限制 (例如 255 字符)
-    # MAX_SAFE_FILENAME_LEN 是一个保守的安全长度限制，可以根据你的文件系统进行调整
+    # 4. Check final filename length and truncate to keep it well below filesystem limits (e.g., 255 chars)
+    # MAX_SAFE_FILENAME_LEN is a conservative limit and can be adjusted for your filesystem
     MAX_SAFE_FILENAME_LEN = 150 
     if len(logfilename) > MAX_SAFE_FILENAME_LEN:
-        # 截断策略：保留足够的前缀，然后连接时间戳、哈希和后缀，确保唯一性不丢失
+        # Truncation strategy: keep enough prefix and then append timestamp, hash, and suffix to preserve uniqueness
         
-        # 计算需要保留的唯一部分（哈希 + 时间戳 + 后缀 + 连接符）的长度
+        # Compute the required length for unique parts (hash + timestamp + suffix + separators)
         required_unique_part_len = len(config_hash) + len(config['run_local_time']) + len(suffix) + 2 # +2 for hyphens
         
-        # 计算前缀可以有多长
+        # Compute allowed prefix length
         prefix_len = MAX_SAFE_FILENAME_LEN - required_unique_part_len
         
         if prefix_len > 0:
             base_filename_short = base_filename[:prefix_len]
         else:
-            base_filename_short = "" # 如果前缀都放不下，就空着
+            base_filename_short = "" # If even the prefix does not fit, keep it empty
 
         logfilename = "{}-{}-{}{}".format(
             base_filename_short,
@@ -126,7 +126,7 @@ def get_file_name(config: dict, suffix: str = ''):
             config_hash,
             suffix
         )
-        # 再次确认截断后是否仍然超长，如果还超长，则最终强制截断到安全长度
+        # Confirm length again after truncation; if still too long, force-truncate to safe length
         if len(logfilename) > MAX_SAFE_FILENAME_LEN:
              logfilename = logfilename[:MAX_SAFE_FILENAME_LEN] 
 
@@ -218,7 +218,7 @@ def get_model(model_name: Union[str, AbstractModel]) -> AbstractModel:
         return model_name
 
     try:
-        # 特殊处理多模态模型
+        # Special handling for multimodal models
         if model_name == 'MultimodalRPG':
             from decoder.models.multimodal_rpg import MultimodalRPG
             return MultimodalRPG
@@ -253,17 +253,17 @@ def get_dataset(dataset_name: Union[str, AbstractDataset]) -> AbstractDataset:
 
     try:
         if dataset_name == 'AmazonReviews2014':
-            # 使用 AmazonDataProcessor 进行完整的数据处理
+            # Use AmazonDataProcessor for full data processing
             from dataloader.amazon_data_processor import AmazonDataProcessor
             
-            # 创建一个包装类，使其兼容 AbstractDataset 接口
+            # Create a wrapper class to make it compatible with the AbstractDataset interface
             class AmazonReviews2014Wrapper(AbstractDataset):
                 def __init__(self, config):
                     super().__init__(config)
                     self.category = config['category']
                     self.cache_dir = config.get('cache_dir', 'cache')
                     
-                    # 使用 AmazonDataProcessor 进行数据处理
+                    # Use AmazonDataProcessor for data processing
                     processor = AmazonDataProcessor(
                         category=self.category,
                         cache_dir=self.cache_dir,
@@ -272,18 +272,18 @@ def get_dataset(dataset_name: Union[str, AbstractDataset]) -> AbstractDataset:
                     )
                     processor.run_full_pipeline()
                     
-                    # 加载处理后的数据
+                    # Load processed data
                     self.all_item_seqs = processor.all_item_seqs
                     self.id_mapping = processor.id_mapping
                     self.item2meta = processor.item2meta
                     
                 def _download_and_process_raw(self):
-                    # 已在 __init__ 中完成
+                    # Already completed in __init__
                     pass
             
             return AmazonReviews2014Wrapper
         else:
-            # 其他数据集的处理逻辑
+            # Processing logic for other datasets
             dataset_module = importlib.import_module(f'dataloader.{dataset_name}.dataset')
             dataset_class = getattr(dataset_module, dataset_name)
     except:
@@ -570,18 +570,18 @@ def config_for_log(config: dict) -> dict:
     config.pop('device', None)
     config.pop('accelerator', None)
     
-    # 过滤掉不支持的数据类型，只保留基本类型
+    # Filter out unsupported data types and keep only basic types
     filtered_config = {}
     for k, v in config.items():
         if isinstance(v, (int, float, str, bool)):
             filtered_config[k] = v
         elif isinstance(v, list):
-            # 将列表转换为字符串
+            # Convert list to string
             filtered_config[k] = str(v)
         elif v is None:
             filtered_config[k] = "None"
         else:
-            # 跳过其他复杂类型
+            # Skip other complex types
             continue
     
     return filtered_config

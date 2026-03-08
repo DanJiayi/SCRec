@@ -61,10 +61,10 @@ class CSA(AbstractModel):
 
         self.item_id2tokens = self._map_item_tokens().to(self.config['device'])
 
-        # 添加文本嵌入加载
+        # Add text embedding loading
         self.text_embeddings = self._load_text_embeddings()
         
-        # 性能优化：缓存设备转换，避免每次调用都转换
+        # Performance optimization: cache device transfers to avoid repeated conversion
         self._text_embeddings_device_cache = {}
         
         print(f"[TEXT_MODAL] 🚀 Performance optimization enabled:")
@@ -112,35 +112,35 @@ class CSA(AbstractModel):
         self.n_edges = config['n_edges']
         self.propagation_steps = config['propagation_steps']
 
-        # 添加文本模态融合层
+        # Add text-modality fusion layer
         text_dim = self.text_embeddings.shape[1]
         # print(f"[TEXT_MODAL] 🔧 Text embedding dimension: {text_dim}")
         # print(f"[TEXT_MODAL] 🔧 GPT2 embedding dimension: {config['n_embd']}")
         
-        # 修改原因：使用拼接融合避免过度正则化，保持模型性能
-        # 原代码：简单的线性融合层
+        # Reason for change: use concatenation fusion to avoid over-regularization and keep model performance
+        # Original code: simple linear fusion layer
         # self.modality_fusion = nn.Linear(
         #     config['n_embd'] + text_dim, 
         #     config['n_embd']
         # )
         
-        # 新代码：带正则化的多层融合网络（已注释掉，效果下降）
+        # New code: regularized multi-layer fusion network (commented out, worse performance)
         # self.modality_fusion = nn.Sequential(
-        #     nn.Dropout(0.1),  # 输入dropout防止过拟合
-        #     nn.Linear(config['n_embd'] + text_dim, config['n_embd'] * 2),  # 扩展维度
-        #     nn.ReLU(),  # 非线性激活
-        #     nn.Dropout(0.1),  # 中间dropout
-        #     nn.Linear(config['n_embd'] * 2, config['n_embd']),  # 压缩回目标维度
-        #     nn.LayerNorm(config['n_embd']),  # 层归一化稳定训练
-        #     nn.Dropout(0.05)  # 输出dropout
+        #     nn.Dropout(0.1),  # Input dropout to prevent overfitting
+        #     nn.Linear(config['n_embd'] + text_dim, config['n_embd'] * 2),  # Expand dimensions
+        #     nn.ReLU(),  # Non-linear activation
+        #     nn.Dropout(0.1),  # Middle dropout
+        #     nn.Linear(config['n_embd'] * 2, config['n_embd']),  # Compress back to target dimension
+        #     nn.LayerNorm(config['n_embd']),  # Layer normalization for stable training
+        #     nn.Dropout(0.05)  # Output dropout
         # )
         
-        # 最新代码：使用简单的线性融合层，避免过度正则化
-        # 直接拼接会导致维度不匹配，GPT-2期望448维输入
-        # 所以仍然需要一个线性层来调整维度，但保持简单
+        # Latest code: use a simple linear fusion layer to avoid over-regularization
+        # Direct concatenation causes dimension mismatch; GPT-2 expects 448-dim input
+        # So a linear layer is still needed for dimension adjustment, while keeping it simple
         self.modality_fusion = nn.Linear(
-            config['n_embd']+ text_dim,  # 输入：448 + 1280 = 1728
-            config['n_embd']               # 输出：448
+            config['n_embd']+ text_dim,  # Input: 448 + 1280 = 1728
+            config['n_embd']               # Output: 448
         )
         self.code_weights = nn.Parameter(torch.ones(self.tokenizer.n_digit))
         self.text_mlp = nn.Linear(text_dim, config['n_embd'])
@@ -164,111 +164,109 @@ class CSA(AbstractModel):
 
 
     def _load_text_embeddings(self) -> torch.Tensor:
-        """加载文本嵌入，支持动态维度"""
         try:
             category = self.config.get('category', 'Beauty')
-            # 修改原因：使用配置中的cache_dir，支持动态路径配置
-            # 原代码：硬编码绝对路径，导致权限问题
-            # 新代码：从配置中获取cache_dir，如果没有则使用默认值
+            # Reason for change: use cache_dir from config to support dynamic path configuration
+            # Original code: hard-coded absolute path, causing permission issues
+            # New code: read cache_dir from config, with a default fallback
             cache_dir = self.config.get('cache_dir', 'cache')
             processed_dir = os.path.join(cache_dir, 'AmazonReviews2014', category, 'processed')
             
-            # 支持动态维度：从配置中获取目标维度，如果没有则使用默认值
+            # Support dynamic dimension: read target dimension from config, use default if missing
             target_dim = self.config.get('text_embedding_dim', None)
             
-            # 优先尝试加载指定维度的PCA嵌入文件
+            # Prefer loading the PCA embedding file with the specified dimension first
             if target_dim:
-                # 修改原因：所有PCA文件都从数据集目录中读取，确保数据匹配
-                # 原代码：从根目录读取通用PCA文件
-                # 新代码：只从数据集目录读取，避免数量不匹配问题
+                # Reason for change: read all PCA files from dataset directory to ensure data consistency
+                # Original code: read generic PCA files from root directory
+                # New code: only read from dataset directory to avoid count mismatches
                 dataset_pca_file = os.path.join(processed_dir, f'final_pca_embeddings_{target_dim}d.npy')
                 
-                # 只尝试数据集目录下的文件
+                # Only try files in the dataset directory
                 if os.path.exists(dataset_pca_file):
                     embeddings = np.load(dataset_pca_file)
-                    print(f"[TEXT_MODAL] ✅ Loaded {target_dim}D PCA text embeddings from dataset dir: {embeddings.shape}")
+                    print(f"[TEXT_MODAL] Loaded {target_dim}D PCA text embeddings from dataset dir: {embeddings.shape}")
                     
-                    # 检查嵌入数量是否与数据集商品数量匹配
+                    # Check whether embedding count matches dataset item count
                     if embeddings.shape[0] != self.dataset.n_items:
-                        print(f"[TEXT_MODAL] ⚠️ Dataset PCA text embeddings count ({embeddings.shape[0]}) doesn't match dataset items ({self.dataset.n_items})")
-                        raise ValueError(f"[TEXT_MODAL] ❌ Dataset PCA embeddings count mismatch: {embeddings.shape[0]} vs {self.dataset.n_items}")
+                        print(f"[TEXT_MODAL] Dataset PCA text embeddings count ({embeddings.shape[0]}) doesn't match dataset items ({self.dataset.n_items})")
+                        raise ValueError(f"[TEXT_MODAL] Dataset PCA embeddings count mismatch: {embeddings.shape[0]} vs {self.dataset.n_items}")
                     
                     return torch.from_numpy(embeddings).float()
                 else:
-                    print(f"[TEXT_MODAL] ⚠️ Specified {target_dim}D PCA file not found in dataset dir: {dataset_pca_file}")
-                    print(f"[TEXT_MODAL] 🔄 Falling back to default PCA file...")
+                    print(f"[TEXT_MODAL] Specified {target_dim}D PCA file not found in dataset dir: {dataset_pca_file}")
+                    print(f"[TEXT_MODAL] Falling back to default PCA file...")
             
-            # 尝试加载默认的PCA处理后的文本嵌入
+            # Try loading the default PCA-processed text embeddings
             pca_emb_file = os.path.join(processed_dir, 'final_pca_embeddings.npy')
             if os.path.exists(pca_emb_file):
                 embeddings = np.load(pca_emb_file)
-                print(f"[TEXT_MODAL] ✅ Loaded default PCA text embeddings") #: {embeddings.shape}
+                print(f"[TEXT_MODAL] Loaded default PCA text embeddings") #: {embeddings.shape}
                 
-                # 检查嵌入数量是否与数据集商品数量匹配
+                # Check whether embedding count matches dataset item count
                 if embeddings.shape[0] != self.dataset.n_items:
-                    print(f"[TEXT_MODAL] ⚠️ PCA text embeddings count ({embeddings.shape[0]}) doesn't match dataset items ({self.dataset.n_items})")
-                    raise ValueError(f"[TEXT_MODAL] ❌ PCA embeddings count mismatch: {embeddings.shape[0]} vs {self.dataset.n_items}")
+                    print(f"[TEXT_MODAL] PCA text embeddings count ({embeddings.shape[0]}) doesn't match dataset items ({self.dataset.n_items})")
+                    raise ValueError(f"[TEXT_MODAL] PCA embeddings count mismatch: {embeddings.shape[0]} vs {self.dataset.n_items}")
                 
                 return torch.from_numpy(embeddings).float()
             
-            # 如果没有PCA文件，尝试加载原始文本嵌入
+            # If no PCA file is available, try loading raw text embeddings
             sent_emb_file = os.path.join(processed_dir, 'text-embedding-3-large.sent_emb')
             if os.path.exists(sent_emb_file):
-                # 使用fromfile加载二进制格式的embedding文件
-                # text-embedding-3-large模型的维度是3072
+                # Use fromfile to load the binary embedding file
+                # The text-embedding-3-large model has dimension 3072
                 embeddings = np.fromfile(sent_emb_file, dtype=np.float32).reshape(-1, 3072)
-                print(f"[TEXT_MODAL] ⚠️ Loaded raw text embeddings: {embeddings.shape}")
+                print(f"[TEXT_MODAL] Loaded raw text embeddings: {embeddings.shape}")
                 
-                # 检查嵌入数量是否与数据集商品数量匹配
-                # 注意：数据集可能包含特殊token如[PAD]，嵌入文件只包含真实商品
+                # Check whether embedding count matches dataset item count
+                # Note: the dataset may include special tokens such as [PAD], while embedding files only contain real items
                 expected_embeddings = self.dataset.n_items
                 if embeddings.shape[0] != expected_embeddings:
-                    print(f"[TEXT_MODAL] ⚠️ Raw text embeddings count ({embeddings.shape[0]}) doesn't match expected ({expected_embeddings})")
+                    print(f"[TEXT_MODAL] Raw text embeddings count ({embeddings.shape[0]}) doesn't match expected ({expected_embeddings})")
                     
-                    # 如果嵌入数量更多，智能截取前N个
+                    # If there are more embeddings, truncate to the first N
                     if embeddings.shape[0] > expected_embeddings:
-                        print(f"[TEXT_MODAL] 🔄 Truncating embeddings to match expected size: {expected_embeddings}")
+                        print(f"[TEXT_MODAL] Truncating embeddings to match expected size: {expected_embeddings}")
                         embeddings = embeddings[:expected_embeddings]
-                        print(f"[TEXT_MODAL] ✅ Truncated embeddings shape: {embeddings.shape}")
+                        print(f"[TEXT_MODAL] Truncated embeddings shape: {embeddings.shape}")
                         return torch.from_numpy(embeddings).float()
                     else:
-                        # 如果嵌入数量少，检查是否是特殊token的问题
+                        # If embeddings are fewer, check whether this is caused by special tokens
                         if embeddings.shape[0] == expected_embeddings - 1:
-                            print(f"[TEXT_MODAL] 🔍 Detected potential special token issue")
-                            print(f"[TEXT_MODAL] 🔍 Embeddings: {embeddings.shape[0]}, Expected: {expected_embeddings}")
-                            print(f"[TEXT_MODAL] 🔍 This usually means the dataset has a [PAD] token at index 0")
+                            print(f"[TEXT_MODAL] Detected potential special token issue")
+                            print(f"[TEXT_MODAL] Embeddings: {embeddings.shape[0]}, Expected: {expected_embeddings}")
+                            print(f"[TEXT_MODAL] This usually means the dataset has a [PAD] token at index 0")
                             
-                            # 为[PAD] token创建一个占位嵌入（全零）
+                            # Create a placeholder embedding (all zeros) for the [PAD] token
                             pad_embedding = np.zeros((1, embeddings.shape[1]), dtype=np.float32)
                             embeddings = np.vstack([pad_embedding, embeddings])
-                            print(f"[TEXT_MODAL] ✅ Added [PAD] embedding, final shape: {embeddings.shape}")
+                            print(f"[TEXT_MODAL] Added [PAD] embedding, final shape: {embeddings.shape}")
                             return torch.from_numpy(embeddings).float()
                         else:
-                            raise ValueError(f"[TEXT_MODAL] ❌ Text embeddings count ({embeddings.shape[0]}) doesn't match dataset items ({expected_embeddings}) and cannot be automatically fixed")
+                            raise ValueError(f"[TEXT_MODAL] Text embeddings count ({embeddings.shape[0]}) doesn't match dataset items ({expected_embeddings}) and cannot be automatically fixed")
                 
                 return torch.from_numpy(embeddings).float()
             
-            # 如果没有，直接报错
-            raise FileNotFoundError("[TEXT_MODAL] ❌ No text embeddings found. Please ensure text embeddings are available.")
+            # If none is found, raise an error directly
+            raise FileNotFoundError("[TEXT_MODAL] No text embeddings found. Please ensure text embeddings are available.")
             
         except Exception as e:
-            print(f"[TEXT_MODAL] ❌ Error loading text embeddings: {e}")
-            raise RuntimeError(f"[TEXT_MODAL] ❌ Failed to load text embeddings: {e}")
+            print(f"[TEXT_MODAL] Error loading text embeddings: {e}")
+            raise RuntimeError(f"[TEXT_MODAL] Failed to load text embeddings: {e}")
 
     def _fuse_text_modality(self, id_embeddings, batch):
-        """融合ID和文本模态 (性能优化版本)"""
         batch_size = id_embeddings.shape[0]
         seq_len = id_embeddings.shape[1]
         device = id_embeddings.device
         
-        # 获取文本嵌入维度
+        # Get text embedding dimension
         text_dim = self.text_embeddings.shape[1]
         
-        # 获取批次中的商品ID
+        # Get item IDs in the batch
         item_ids = batch['input_ids']  # shape: (batch_size, seq_len)
         
-        # --- 性能瓶颈优化：向量化索引替代双重循环 ---
-        # 原代码：双重Python循环，性能极差
+        # --- Performance bottleneck optimization: replace double loops with vectorized indexing ---
+        # Original code: double Python loops with very poor performance
         # text_emb = torch.zeros(batch_size, seq_len, text_dim, device=device)
         # for b in range(batch_size):
         #     for s in range(seq_len):
@@ -276,45 +274,45 @@ class CSA(AbstractModel):
         #         if 0 <= item_id < self.dataset.n_items:
         #             text_emb[b, s] = self.text_embeddings[item_id]
         
-        # 新代码：向量化索引，一次性完成所有查找
-        # 使用设备缓存，避免重复的设备转换
+        # New code: vectorized indexing, complete all lookups in one step
+        # Use device cache to avoid repeated device transfers
         device_key = str(device)
         if device_key not in self._text_embeddings_device_cache:
             self._text_embeddings_device_cache[device_key] = self.text_embeddings.to(device)
         
         text_embeddings_device = self._text_embeddings_device_cache[device_key]
         
-        # 直接使用item_ids作为索引，PyTorch自动处理所有批次和序列位置
-        # 这行代码替代了整个双重循环，性能提升数量级
+        # Use item_ids directly as index; PyTorch handles all batch and sequence positions automatically
+        # This line replaces the entire double loop and improves performance by orders of magnitude
         text_emb = text_embeddings_device[item_ids]  # shape: (batch_size, seq_len, text_dim)
         
-        # 统计有效嵌入的数量（用于调试，不影响性能）
-        # 注意：item_ids中0通常是[PAD] token，需要特殊处理
+        # Count valid embeddings (for debugging only; does not affect performance)
+        # Note: 0 in item_ids is usually the [PAD] token and needs special handling
         valid_mask = (item_ids > 0) & (item_ids < self.dataset.n_items)
         valid_embeddings = valid_mask.sum().item()
         total_positions = batch_size * seq_len
         
-        # 性能监控：检查是否有无效的item_id（超出范围）
+        # Performance monitoring: check whether there are invalid item_ids (out of range)
         invalid_mask = (item_ids < 0) | (item_ids >= self.dataset.n_items)
         if invalid_mask.any():
             invalid_count = invalid_mask.sum().item()
             if not hasattr(self, '_invalid_id_warning_logged'):
-                print(f"[TEXT_MODAL] ⚠️ Warning: Found {invalid_count} invalid item IDs (out of range)")
-                print(f"[TEXT_MODAL] ⚠️ Item ID range: 0 to {self.dataset.n_items - 1}")
+                print(f"[TEXT_MODAL] Warning: Found {invalid_count} invalid item IDs (out of range)")
+                print(f"[TEXT_MODAL] Item ID range: 0 to {self.dataset.n_items - 1}")
                 self._invalid_id_warning_logged = True
         
-        # 打印融合统计信息（只在第一个batch时打印）
+        # Print fusion statistics (only for the first batch)
         if not hasattr(self, '_first_batch_logged'):
-            print(f"[TEXT_MODAL] 🔄 Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
-            print(f"[TEXT_MODAL] 🔄 Text embedding sample: {text_emb[0, 0, :5]}")
-            print(f"[TEXT_MODAL] 🔄 Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
+            print(f"[TEXT_MODAL] Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
+            print(f"[TEXT_MODAL] Text embedding sample: {text_emb[0, 0, :5]}")
+            print(f"[TEXT_MODAL] Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
             print(f"[TEXT_MODAL] 🚀 Using vectorized indexing for performance optimization")
             self._first_batch_logged = True
         
-        # 拼接ID和文本模态
+        # Concatenate ID and text modalities
         # fused_embeddings = torch.cat([id_embeddings, text_emb], dim=-1)
         
-        # 通过融合层
+        # Pass through the fusion layer
         e_sem = self.text_mlp(text_emb)          # (B,S,d)
         # gate input: [e_cf ; e_sem]
         gate_inp = torch.cat([id_embeddings, e_sem], dim=-1)
@@ -326,26 +324,25 @@ class CSA(AbstractModel):
         return fused_embeddings, e_sem
     
     def benchmark_fusion_performance(self, batch_size=32, seq_len=50, num_runs=100):
-        """性能基准测试函数，用于验证优化效果"""
         import time
         
-        print(f"[BENCHMARK] 🚀 Starting fusion performance benchmark...")
-        print(f"[BENCHMARK] 📊 Batch size: {batch_size}, Sequence length: {seq_len}, Runs: {num_runs}")
+        print(f"[BENCHMARK] Starting fusion performance benchmark...")
+        print(f"[BENCHMARK] Batch size: {batch_size}, Sequence length: {seq_len}, Runs: {num_runs}")
         
-        # 创建测试数据
+        # Create test data
         device = next(self.parameters()).device
         test_batch = {
             'input_ids': torch.randint(0, min(1000, self.dataset.n_items), (batch_size, seq_len), device=device)
         }
         test_id_embeddings = torch.randn(batch_size, seq_len, self.config['n_embd'], device=device)
         
-        # 预热GPU
-        print(f"[BENCHMARK] 🔥 Warming up GPU...")
+        # Warm up GPU
+        print(f"[BENCHMARK] Warming up GPU...")
         for _ in range(10):
             _ = self._fuse_text_modality(test_id_embeddings, test_batch)
         
-        # 性能测试
-        print(f"[BENCHMARK] ⏱️ Running performance test...")
+        # Performance test
+        print(f"[BENCHMARK] Running performance test...")
         torch.cuda.synchronize() if device.type == 'cuda' else None
         
         start_time = time.time()
@@ -359,11 +356,11 @@ class CSA(AbstractModel):
         avg_time = total_time / num_runs
         throughput = num_runs / total_time
         
-        print(f"[BENCHMARK] ✅ Performance test completed!")
-        print(f"[BENCHMARK] 📈 Total time: {total_time:.4f}s")
-        print(f"[BENCHMARK] 📈 Average time per run: {avg_time:.6f}s")
-        print(f"[BENCHMARK] 📈 Throughput: {throughput:.2f} runs/second")
-        print(f"[BENCHMARK] 📈 Estimated time for 1000 batches: {avg_time * 1000:.4f}s")
+        print(f"[BENCHMARK] Performance test completed!")
+        print(f"[BENCHMARK] Total time: {total_time:.4f}s")
+        print(f"[BENCHMARK] Average time per run: {avg_time:.6f}s")
+        print(f"[BENCHMARK] Throughput: {throughput:.2f} runs/second")
+        print(f"[BENCHMARK] Estimated time for 1000 batches: {avg_time * 1000:.4f}s")
         
         return {
             'total_time': total_time,
@@ -379,25 +376,25 @@ class CSA(AbstractModel):
         Returns:
             item_id2tokens (torch.Tensor): A tensor of shape (n_items, n_digit) where each row represents the semantic IDs of an item.
         """
-        # 修改原因：支持RQVae码本和FAISS码本的动态切换
+        # Reason for change: support dynamic switching between RQVae and FAISS codebooks
         if self.config.get('use_rqvae_codebook', False):
-            print(f"[RQVae] 🔄 Using RQVae codebook for item token mapping")
-            # 使用RQVae码本
-            # 修改原因：修复索引越界问题，item_id应该从0开始，最大为n_items-1
+            print(f"[RQVae] Using RQVae codebook for item token mapping")
+            # Use RQVae codebook
+            # Reason for change: fix index out-of-range issue; item_id should start from 0 with max n_items-1
             item_id2tokens = torch.zeros((self.dataset.n_items, self.tokenizer.n_digit), dtype=torch.long)
             
             valid_items = 0
             skipped_items = 0
-            skipped_details = []  # 记录被跳过的item详细信息
+            skipped_details = []  # Record detailed information for skipped items
             
-            print(f"[RQVae] 📊 开始映射码本中的 {len(self.tokenizer.item2tokens)} 个item到数据集...")
-            print(f"[RQVae] 📊 数据集总item数量: {self.dataset.n_items}")
-            print(f"[RQVae] 📊 数据集item ID范围: 0 到 {self.dataset.n_items - 1}")
+            print(f"[RQVae] Start mapping {len(self.tokenizer.item2tokens)} codebook items to the dataset...")
+            print(f"[RQVae] Total number of dataset items: {self.dataset.n_items}")
+            print(f"[RQVae] Dataset item ID range: 0 to {self.dataset.n_items - 1}")
             
             for item in self.tokenizer.item2tokens:
                 if item in self.dataset.item2id:
                     item_id = self.dataset.item2id[item]
-                    # 确保item_id在有效范围内
+                    # Ensure item_id is within the valid range
                     if item_id < self.dataset.n_items:
                         item_id2tokens[item_id] = torch.LongTensor(self.tokenizer.item2tokens[item])
                         valid_items += 1
@@ -412,35 +409,35 @@ class CSA(AbstractModel):
                     skipped_details.append(f"Item '{item}': {skip_reason}")
                     skipped_items += 1
             
-            # 输出详细的跳过信息
+            # Output detailed skip information
             if skipped_items > 0:
-                print(f"\n[RQVae] ⚠️ 详细跳过信息 ({skipped_items} 个item):")
+                print(f"\n[RQVae] Detailed skip information ({skipped_items} items):")
                 for detail in skipped_details:
                     print(f"  - {detail}")
                 print()
             
-            print(f"[RQVae] ✅ 映射完成: 成功 {valid_items} 个, 跳过 {skipped_items} 个")
-            print(f"[RQVae] 📊 最终张量形状: {item_id2tokens.shape}")
+            print(f"[RQVae] Mapping complete: succeeded {valid_items}, skipped {skipped_items}")
+            print(f"[RQVae] Final tensor shape: {item_id2tokens.shape}")
             
             return item_id2tokens
         else:
-            print(f"[FAISS] 🔄 Using FAISS codebook for item token mapping")
-            # 使用FAISS码本（原有逻辑）
-            # 修改原因：修复索引越界问题，item_id应该从0开始，最大为n_items-1
+            print(f"[FAISS] Using FAISS codebook for item token mapping")
+            # Use FAISS codebook (original logic)
+            # Reason for change: fix index out-of-range issue; item_id should start from 0 with max n_items-1
             item_id2tokens = torch.zeros((self.dataset.n_items, self.tokenizer.n_digit), dtype=torch.long)
             
             valid_items = 0
             skipped_items = 0
-            skipped_details = []  # 记录被跳过的item详细信息
+            skipped_details = []  # Record detailed information for skipped items
             
-            print(f"[FAISS] 📊 开始映射码本中的 {len(self.tokenizer.item2tokens)} 个item到数据集...")
-            print(f"[FAISS] 📊 数据集总item数量: {self.dataset.n_items}")
-            print(f"[FAISS] 📊 数据集item ID范围: 0 到 {self.dataset.n_items - 1}")
+            print(f"[FAISS] Start mapping {len(self.tokenizer.item2tokens)} codebook items to the dataset...")
+            print(f"[FAISS] Total number of dataset items: {self.dataset.n_items}")
+            print(f"[FAISS] Dataset item ID range: 0 to {self.dataset.n_items - 1}")
             
             for item in self.tokenizer.item2tokens:
                 if item in self.dataset.item2id:
                     item_id = self.dataset.item2id[item]
-                    # 确保item_id在有效范围内
+                    # Ensure item_id is within the valid range
                     if item_id < self.dataset.n_items:
                         item_id2tokens[item_id] = torch.LongTensor(self.tokenizer.item2tokens[item])
                         valid_items += 1
@@ -455,15 +452,15 @@ class CSA(AbstractModel):
                     skipped_details.append(f"Item '{item}': {skip_reason}")
                     skipped_items += 1
             
-            # 输出详细的跳过信息
+            # Output detailed skip information
             if skipped_items > 0:
-                print(f"\n[FAISS] ⚠️ 详细跳过信息 ({skipped_items} 个item):")
+                print(f"\n[FAISS] Detailed skip information ({skipped_items} items):")
                 for detail in skipped_details:
                     print(f"  - {detail}")
                 print()
             
-            print(f"[FAISS] ✅ 映射完成: 成功 {valid_items} 个, 跳过 {skipped_items} 个")
-            print(f"[FAISS] 📊 最终张量形状: {item_id2tokens.shape}")
+            print(f"[FAISS] Mapping complete: succeeded {valid_items}, skipped {skipped_items}")
+            print(f"[FAISS] Final tensor shape: {item_id2tokens.shape}")
             
             return item_id2tokens
 
@@ -476,7 +473,7 @@ class CSA(AbstractModel):
                 f'#Total trainable parameters: {total_params}\n'
 
     def forward(self, batch: dict, return_loss=True) -> torch.Tensor:
-        # 获取ID模态嵌入
+        # Get ID-modality embeddings
         input_tokens = self.item_id2tokens[batch['input_ids']]
 
         # id_embeddings = self.gpt2.wte(input_tokens).mean(dim=-2)
@@ -493,13 +490,13 @@ class CSA(AbstractModel):
 
         id_embeddings = (v_all * weights[None, None, :, None]).sum(dim=-2)
         
-        # 融合ID和文本模态
+        # Fuse ID and text modalities
         fused_embeddings, e_sem = self._fuse_text_modality(id_embeddings, batch)
 
-        # 不使用其他模态
+        # Do not use other modalities
         # fused_embeddings = id_embeddings
         
-        # 通过GPT-2
+        # Pass through GPT-2
         outputs = self.gpt2(
             inputs_embeds=fused_embeddings,
             attention_mask=batch['attention_mask']
@@ -559,26 +556,26 @@ class CSA(AbstractModel):
             outputs.loss += self.contrastive_alpha * contrastive_loss
             outputs.align_loss = self.contrastive_alpha * contrastive_loss
 
-            # -------------------- 双曲流形对齐损失 --------------------
-            # 计算双曲映射
+            # -------------------- Hyperbolic manifold alignment loss --------------------
+            # Compute hyperbolic mappings
             z_hyp = self.proj_phi(id_embeddings.view(-1, D))
             z_hyp = self.hyp_map(z_hyp, self.manifold_c)          # φ(w_c)
             e_mix_hyp = self.proj_psi(fused_embeddings.view(-1, D))
             e_mix_hyp = self.hyp_map(e_mix_hyp, self.manifold_c)   # ψ(e_mix)
 
-            # 欧式距离平方
+            # Squared Euclidean distance
             diff_sq = torch.sum((z_hyp - e_mix_hyp) ** 2, dim=-1)
 
-            # 范数平方
+            # Squared norms
             z_norm_sq = torch.clamp(self.manifold_c**2 - torch.sum(z_hyp ** 2, dim=-1), min=1e-6)
             e_norm_sq = torch.clamp(self.manifold_c**2 - torch.sum(e_mix_hyp ** 2, dim=-1), min=1e-6)
-            # 双曲测地距离
+            # Hyperbolic geodesic distance
             arg = 1 + 2 * (self.manifold_c ** 2) * diff_sq / (z_norm_sq * e_norm_sq)
             manifold_dist = torch.acosh(torch.clamp(arg, min=1 + 1e-5))  # Avoid numerical instability
 
             manifold_loss = torch.mean(manifold_dist)
 
-            # 损失系数（可以在 config.yaml 中加：manifold_alpha: 0.05）
+            # Loss coefficient (you can add manifold_alpha: 0.05 in config.yaml)
             outputs.loss += self.manifold_beta * manifold_loss
             outputs.manifold_loss = self.manifold_beta * manifold_loss
 

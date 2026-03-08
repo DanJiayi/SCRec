@@ -23,9 +23,8 @@ topk: [5,10]
 metrics: [ndcg,recall]
 val_metric: ndcg@10
 
-# 禁用wandb以避免网络连接问题
 wandb:
-  project_name: RPG_RQVAE
+  project_name: SCRec_RQVAE
   run_id: rqvae
-  mode: disabled  # 禁用wandb
+  mode: disabled  # do not use wandb
 

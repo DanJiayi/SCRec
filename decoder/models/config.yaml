@@ -1,5 +1,5 @@
 # Overwritting configs
-metadata: multimodal  # 修改为多模态（文本+图片+ID）
+metadata: multimodal  
 
 # Config the sentence embedding model
 #   Sentence T5
@@ -44,16 +44,12 @@ opq_use_gpu: False
 opq_gpu_id: 0
 faiss_omp_num_threads: 32
 
-# RPG configs
-#   model
-temperature: 0.07
-num_beams: 50
-n_edges: 50
-propagation_steps: 3
 
-# --- 第四部分: RQ-VAE 参数 (我们唯一的"ID配置"来源) ---
+
+
+# 
 # 这是新的 Tokenizer 和模型唯一依赖的 ID 配置。
-# 旧的 'Semantic ID configs' 已被移除以避免冲突。
+# RQ-VAE configs
 RQ-VAE:
   input_dim: 512          
   hidden_dim: [1024, 512] 
@@ -62,3 +58,11 @@ RQ-VAE:
   code_book_size: 2048    # 这是单个 Codebook 的大小
   dropout: 0.0
   beta: 0.25
+
+
+
+# deprecated
+temperature: 0.07
+num_beams: 50
+n_edges: 50
+propagation_steps: 3

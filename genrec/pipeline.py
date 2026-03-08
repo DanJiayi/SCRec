@@ -1,9 +1,3 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
 from logging import getLogger
 from typing import Union
 import torch
@@ -59,24 +53,24 @@ class Pipeline:
         self.log(self.raw_dataset)
         self.split_datasets = self.raw_dataset.split()
         
-        # 修改原因：动态替换配置中的占位符，根据category参数自动选择对应的码本文件
-        # 原代码：配置文件中的码本路径是硬编码的
-        # 新代码：运行时动态替换{category}占位符
+        # Reason for change: dynamically replace placeholders in config and select the corresponding codebook by category
+        # Original code: codebook paths in the config were hard-coded
+        # New code: dynamically replace the {category} placeholder at runtime
         if 'category' in self.config:
             category = self.config['category']
-            # 动态替换码本路径中的占位符
+            # Dynamically replace placeholders in codebook paths
             if 'rqvae_codebook_path' in self.config:
                 old_path = self.config['rqvae_codebook_path']
                 new_path = old_path.format(category=category)
                 if old_path != new_path:
-                    self.log(f'[CONFIG] 🔄 Dynamic codebook path: {old_path} -> {new_path}')
+                    self.log(f'[CONFIG] Dynamic codebook path: {old_path} -> {new_path}')
                     self.config['rqvae_codebook_path'] = new_path
             
             if 'rqvae_model_path' in self.config:
                 old_path = self.config['rqvae_model_path']
                 new_path = old_path.format(category=category)
                 if old_path != new_path:
-                    self.log(f'[CONFIG] 🔄 Dynamic model path: {old_path} -> {new_path}')
+                    self.log(f'[CONFIG] Dynamic model path: {old_path} -> {new_path}')
                     self.config['rqvae_model_path'] = new_path
 
         # Tokenizer
@@ -136,7 +130,6 @@ class Pipeline:
         if self.accelerator.is_main_process and self.checkpoint_path is None:
             self.log(f'Loaded best model checkpoint from {self.trainer.saved_model_ckpt}')
 
-        # Enable graph-constrained decoding for model inference
         self.trainer.model.generate_w_decoding_graph = False #True
         test_results = self.trainer.evaluate(test_dataloader)
 
