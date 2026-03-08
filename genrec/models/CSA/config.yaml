@@ -19,7 +19,7 @@ initializer_range: 0.02
 alpha: 1
 contrastive_alpha: 0.1
 contrastive_tau: 0.1
-manifold_beta: 0.5 #0.05
+manifold_beta: 0.2
 manifold_c: 0.5 #1.0
 
 # Semantic ID configs

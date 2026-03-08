@@ -144,7 +144,7 @@ class CSA(AbstractModel):
         nn.Linear(self.config['n_embd'], self.config['n_embd'])
         )
         self.alpha = self.config.get("alpha", 1)
-        self.manifold_beta = self.config.get("manifold_beta", 0.05)
+        self.manifold_beta = self.config.get("manifold_beta", 0.2)
         self.manifold_c = self.config.get("manifold_c", 1.0)
         self.proj_phi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
         self.proj_psi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
