@@ -21,6 +21,7 @@ contrastive_alpha: 0.1
 contrastive_tau: 0.1
 manifold_beta: 0.2
 manifold_c: 0.5 #1.0
+code_weight_tau: 2.0
 
 # Semantic ID configs
 use_rqvae_codebook: true

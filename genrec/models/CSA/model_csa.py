@@ -130,7 +130,8 @@ class CSA(AbstractModel):
             config['n_embd']+ text_dim,  # Input: 448 + 1280 = 1728
             config['n_embd']               # Output: 448
         )
-        self.code_weights = nn.Parameter(torch.ones(self.tokenizer.n_digit))
+        # Use text embeddings to dynamically generate per-digit code weights
+        self.code_weight_fc = nn.Linear(text_dim, self.tokenizer.n_digit)
         self.text_mlp = nn.Linear(text_dim, config['n_embd'])
         # gate network: g = sigmoid(W_g [e_cf ; e_sem])
         self.gate = nn.Linear(config['n_embd'] * 2, config['n_embd'])
@@ -472,11 +473,23 @@ class CSA(AbstractModel):
         # id_embeddings = torch.stack(e_cf_list, dim=0).sum(dim=0)  # (B, S, d)
 
         v_all = self.gpt2.wte(input_tokens)   # (B, S, L, d)
-        # weights = torch.softmax(self.code_weights.to(v_all.device), dim=0)
-        tau = self.config.get("code_weight_tau", 1.0)
-        weights = torch.softmax(self.code_weights.to(v_all.device) / tau, dim=0)  # (L,) -> (1, 1, L) -> (B, S, L)
 
-        id_embeddings = (v_all * weights[None, None, :, None]).sum(dim=-2)
+        # Compute text embeddings for dynamic code weights
+        device = v_all.device
+        device_key = str(device)
+        if device_key not in self._text_embeddings_device_cache:
+            self._text_embeddings_device_cache[device_key] = self.text_embeddings.to(device)
+        text_embeddings_device = self._text_embeddings_device_cache[device_key]
+        item_ids = batch['input_ids']
+        text_emb_for_weights = text_embeddings_device[item_ids]  # (B, S, text_dim)
+
+        # Generate per-digit code weights from text embeddings
+        tau = self.config.get("code_weight_tau", 1.0)
+        code_logits = self.code_weight_fc(text_emb_for_weights)          # (B, S, L)
+        weights = torch.softmax(code_logits / tau, dim=-1)               # (B, S, L)
+
+        # Apply position-specific code weights to codebook embeddings
+        id_embeddings = (v_all * weights[..., :, None]).sum(dim=-2)
         
         # Fuse ID and text modalities
         fused_embeddings, e_sem = self._fuse_text_modality(id_embeddings, batch)
@@ -548,15 +561,13 @@ class CSA(AbstractModel):
             # Compute hyperbolic mappings
             z_hyp = self.proj_phi(id_embeddings.view(-1, D))
             z_hyp = self.hyp_map(z_hyp, self.manifold_c)          # φ(w_c)
-            e_mix_hyp = self.proj_psi(fused_embeddings.view(-1, D))
-            e_mix_hyp = self.hyp_map(e_mix_hyp, self.manifold_c)   # ψ(e_mix)
+            e_hyp = self.proj_psi(e_sem.view(-1, D)) # fused_embeddings.view(-1, D)
+            e_hyp = self.hyp_map(e_hyp, self.manifold_c)   # ψ(e_hyp)
 
-            # Squared Euclidean distance
-            diff_sq = torch.sum((z_hyp - e_mix_hyp) ** 2, dim=-1)
-
+            diff_sq = torch.sum((z_hyp - e_hyp) ** 2, dim=-1)
             # Squared norms
             z_norm_sq = torch.clamp(self.manifold_c**2 - torch.sum(z_hyp ** 2, dim=-1), min=1e-6)
-            e_norm_sq = torch.clamp(self.manifold_c**2 - torch.sum(e_mix_hyp ** 2, dim=-1), min=1e-6)
+            e_norm_sq = torch.clamp(self.manifold_c**2 - torch.sum(e_hyp ** 2, dim=-1), min=1e-6)
             # Hyperbolic geodesic distance
             arg = 1 + 2 * (self.manifold_c ** 2) * diff_sq / (z_norm_sq * e_norm_sq)
             manifold_dist = torch.acosh(torch.clamp(arg, min=1 + 1e-5))  # Avoid numerical instability
