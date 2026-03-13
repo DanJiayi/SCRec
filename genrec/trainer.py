@@ -94,6 +94,9 @@ class Trainer:
         best_val_score = -1
 
         for epoch in range(n_epochs):
+            model = self.accelerator.unwrap_model(self.model)
+            if hasattr(model, 'set_epoch'):
+                model.set_epoch(epoch + 1)
             # Training
             self.model.train()
             total_loss = 0.0

@@ -150,7 +150,10 @@ class CSA(AbstractModel):
         self.proj_phi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
         self.proj_psi = nn.Linear(self.config['n_embd'], self.config['n_embd'])
 
+        self.current_epoch = 1
 
+    def set_epoch(self, epoch: int):
+        self.current_epoch = epoch
 
     def _load_text_embeddings(self) -> torch.Tensor:
         try:
@@ -484,7 +487,13 @@ class CSA(AbstractModel):
         text_emb_for_weights = text_embeddings_device[item_ids]  # (B, S, text_dim)
 
         # Generate per-digit code weights from text embeddings
-        tau = self.config.get("code_weight_tau", 1.0)
+        tau0 = self.config.get("code_weight_tau", 2.0)
+        epoch = getattr(self, 'current_epoch', 1)
+        if epoch <= 10:
+            factor = (epoch - 1) / 9.0
+            tau = tau0 + (1.0 - tau0) * factor
+        else:
+            tau = 1.0
         code_logits = self.code_weight_fc(text_emb_for_weights)          # (B, S, L)
         weights = torch.softmax(code_logits / tau, dim=-1)               # (B, S, L)
 
