@@ -64,7 +64,7 @@ class CSA(AbstractModel):
         self._text_embeddings_device_cache = {}
         
         print(f"[TEXT_MODAL] 🚀 Performance optimization enabled:")
-        print(f"[TEXT_MODAL] 🚀   - Vectorized indexing (replaces double Python loops)")
+        print(f"[TEXT_MODAL] 🚀   - Vectorized indexing")
         print(f"[TEXT_MODAL] 🚀   - Device caching (avoids repeated .to() calls)")
         print(f"[TEXT_MODAL] 🚀   - Expected performance improvement: 10x-100x faster")
 
