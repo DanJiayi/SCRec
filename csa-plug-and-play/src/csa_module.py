@@ -51,9 +51,10 @@ class CSAModule(nn.Module):
         self.n_codebook = n_codebook
         self.code_weight_tau = code_weight_tau
         if n_codebook is not None:
-            self.code_weights = nn.Parameter(torch.zeros(n_codebook))
+            # Use text embeddings to dynamically generate per-code weights
+            self.code_weight_fc = nn.Linear(self.text_dim, n_codebook)
         else:
-            self.code_weights = None
+            self.code_weight_fc = None
 
         self._text_embeddings_device_cache = {}
 
@@ -66,6 +67,26 @@ class CSAModule(nn.Module):
         return scale * x
 
     # ---------------- forward ----------------
+
+    def get_code_weights(self, batch, device):
+        """
+        Compute dynamic per-code weights from text embeddings.
+        Returns a tensor of shape (B, S, L) where:
+          B = batch size, S = sequence length, L = n_codebook.
+        """
+        if self.n_codebook is None or self.code_weight_fc is None:
+            return None
+
+        item_ids = batch["input_ids"].to(device)  # (B, S)
+
+        device_key = str(device)
+        if device_key not in self._text_embeddings_device_cache:
+            self._text_embeddings_device_cache[device_key] = self.text_embeddings.to(device)
+
+        text_emb = self._text_embeddings_device_cache[device_key][item_ids]  # (B, S, text_dim)
+        code_logits = self.code_weight_fc(text_emb)  # (B, S, L)
+        weights = torch.softmax(code_logits / self.code_weight_tau, dim=-1)
+        return weights
 
     def forward(self, id_embeddings, batch):
 
@@ -105,12 +126,11 @@ class CSAModule(nn.Module):
         # ================= Hyperbolic =================
 
         z_hyp = self.hyp_map(self.proj_phi(e_cf), self.manifold_c)
-        e_mix = self.hyp_map(self.proj_psi(fused.reshape(-1, D)), self.manifold_c)
+        e_hyp = self.hyp_map(self.proj_psi(e_sem.reshape(-1, D)), self.manifold_c) #fused.reshape(-1, D)
 
-        diff_sq = torch.sum((z_hyp - e_mix) ** 2, dim=-1)
-
+        diff_sq = torch.sum((z_hyp - e_hyp) ** 2, dim=-1)
         z_norm = torch.clamp(self.manifold_c**2 - torch.sum(z_hyp**2, dim=-1), min=1e-6)
-        e_norm = torch.clamp(self.manifold_c**2 - torch.sum(e_mix**2, dim=-1), min=1e-6)
+        e_norm = torch.clamp(self.manifold_c**2 - torch.sum(e_hyp**2, dim=-1), min=1e-6)
 
         arg = 1 + 2 * (self.manifold_c**2) * diff_sq / (z_norm * e_norm)
         manifold_dist = torch.acosh(torch.clamp(arg, min=1 + 1e-5))

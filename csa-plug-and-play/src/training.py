@@ -287,17 +287,6 @@ def train_epoch(
                     B, max_items_per_seq, csa_module.n_codebook, D
                 )
 
-                # Learnable weights over code positions, following the CSA
-                # implementation in the generative retrieval repo.
-                weights = torch.softmax(
-                    csa_module.code_weights.to(code_region.device)
-                    / csa_module.code_weight_tau,
-                    dim=0,
-                )  # [L]
-                id_embeddings = (code_region * weights.view(1, 1, -1, 1)).sum(
-                    dim=2
-                )  # [B, max_items_per_seq, D]
-
                 # Build a batch view for CSA: we align item_ids with the
                 # aggregated item-level embeddings (length = max_items_per_seq).
                 batch_for_csa = dict(batch)
@@ -319,6 +308,21 @@ def train_epoch(
                     item_ids = torch.cat([item_ids, pad], dim=1)
 
                 batch_for_csa["input_ids"] = item_ids
+
+                # Dynamic weights over code positions, generated from text
+                # embeddings via a single linear layer inside CSAModule.
+                # weights: (B, max_items_per_seq, L)
+                weights = csa_module.get_code_weights(
+                    batch_for_csa, device=code_region.device
+                )
+                if weights is None:
+                    raise ValueError(
+                        "CSAModule.n_codebook must be set to use dynamic code weights."
+                    )
+                # Apply position-specific weights to code embeddings
+                id_embeddings = (code_region * weights[..., :, None]).sum(
+                    dim=2
+                )  # [B, max_items_per_seq, D]
 
                 _, csa_losses = csa_module(id_embeddings, batch_for_csa)
                 csa_total_loss = csa_losses.get("total", 0.0)
