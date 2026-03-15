@@ -63,10 +63,10 @@ class CSA(AbstractModel):
         # Performance optimization: cache device transfers to avoid repeated conversion
         self._text_embeddings_device_cache = {}
         
-        print(f"[TEXT_MODAL] 🚀 Performance optimization enabled:")
-        print(f"[TEXT_MODAL] 🚀   - Vectorized indexing")
-        print(f"[TEXT_MODAL] 🚀   - Device caching (avoids repeated .to() calls)")
-        print(f"[TEXT_MODAL] 🚀   - Expected performance improvement: 10x-100x faster")
+        print(f"[TEXT_MODAL] Performance optimization enabled:")
+        print(f"[TEXT_MODAL]   - Vectorized indexing")
+        print(f"[TEXT_MODAL]   - Device caching (avoids repeated .to() calls)")
+        print(f"[TEXT_MODAL]   - Expected performance improvement: 10x-100x faster")
 
         gpt2config = GPT2Config(
             vocab_size=tokenizer.vocab_size,
@@ -295,10 +295,10 @@ class CSA(AbstractModel):
         
         # Print fusion statistics (only for the first batch)
         if not hasattr(self, '_first_batch_logged'):
-            print(f"[TEXT_MODAL] Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
-            print(f"[TEXT_MODAL] Text embedding sample: {text_emb[0, 0, :5]}")
-            print(f"[TEXT_MODAL] Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
-            print(f"[TEXT_MODAL] 🚀 Using vectorized indexing for performance optimization")
+            # print(f"[TEXT_MODAL] Fusion stats: {valid_embeddings}/{total_positions} valid text embeddings")
+            # print(f"[TEXT_MODAL] Text embedding sample: {text_emb[0, 0, :5]}")
+            # print(f"[TEXT_MODAL] Text embedding norm: {torch.norm(text_emb[0, 0]):.4f}")
+            print(f"[TEXT_MODAL] Using vectorized indexing for performance optimization")
             self._first_batch_logged = True
         
         # Concatenate ID and text modalities
