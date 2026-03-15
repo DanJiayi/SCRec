@@ -102,33 +102,9 @@ class CSA(AbstractModel):
 
         # Add text-modality fusion layer
         text_dim = self.text_embeddings.shape[1]
-        # print(f"[TEXT_MODAL] 🔧 Text embedding dimension: {text_dim}")
-        # print(f"[TEXT_MODAL] 🔧 GPT2 embedding dimension: {config['n_embd']}")
-        
-        # Reason for change: use concatenation fusion to avoid over-regularization and keep model performance
-        # Original code: simple linear fusion layer
-        # self.modality_fusion = nn.Linear(
-        #     config['n_embd'] + text_dim, 
-        #     config['n_embd']
-        # )
-        
-        # New code: regularized multi-layer fusion network (commented out, worse performance)
-        # self.modality_fusion = nn.Sequential(
-        #     nn.Dropout(0.1),  # Input dropout to prevent overfitting
-        #     nn.Linear(config['n_embd'] + text_dim, config['n_embd'] * 2),  # Expand dimensions
-        #     nn.ReLU(),  # Non-linear activation
-        #     nn.Dropout(0.1),  # Middle dropout
-        #     nn.Linear(config['n_embd'] * 2, config['n_embd']),  # Compress back to target dimension
-        #     nn.LayerNorm(config['n_embd']),  # Layer normalization for stable training
-        #     nn.Dropout(0.05)  # Output dropout
-        # )
-        
-        # Latest code: use a simple linear fusion layer to avoid over-regularization
-        # Direct concatenation causes dimension mismatch; GPT-2 expects 448-dim input
-        # So a linear layer is still needed for dimension adjustment, while keeping it simple
         self.modality_fusion = nn.Linear(
-            config['n_embd']+ text_dim,  # Input: 448 + 1280 = 1728
-            config['n_embd']               # Output: 448
+            config['n_embd']+ text_dim,  
+            config['n_embd']              
         )
         # Use text embeddings to dynamically generate per-digit code weights
         self.code_weight_fc = nn.Linear(text_dim, self.tokenizer.n_digit)
