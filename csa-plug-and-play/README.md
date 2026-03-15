@@ -1,6 +1,6 @@
 ## 💡 Plug-and-play Experiments
 
-This directory provides plug-and-play experiments for evaluating CSA on both LIGER and TIGER.
+This directory provides experiments for evaluating our module on both LIGER and TIGER.
 
 ---
 
@@ -29,7 +29,7 @@ Execute:
 bash run.sh
 ```
 
-This will report the performance of LIGER + CSA and TIGER + CSA across all three datasets.
+This will report the performance of LIGER + Ours and TIGER + Ours across all three datasets.
 
 ---
 
@@ -37,7 +37,7 @@ This implementation is built upon the official open-source codebase of LIGER:
 
 https://github.com/facebookresearch/liger
 
-The wrapped CSA module is located at:
+The wrapped module is located at:
 
 ```
 src/csa_module
