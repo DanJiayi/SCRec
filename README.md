@@ -1,3 +1,5 @@
+This repository contains the code for the paper "Addressing Cross-Stage Decoupling of Semantic and Collaborative Signals in Generative Recommendation".
+
 ## 🚀 Quick Start
 
 #### Step 1: Extract Embeddings
@@ -20,11 +22,10 @@ Train RQ-VAE and construct discrete code sequences:
 python3 train_rqvae_from_emb.py
 ```
 
-By default, this uses the Beauty dataset. To switch datasets or modify configurations, edit:
-```text
-quantization/rqvae_config.yaml
-```
+By default, this uses the Beauty dataset. To switch datasets or modify configurations, edit `quantization/rqvae_config.yaml`
 and follow the instructions in the inline comments.
+
+`other_CT_methods` contains the scripts of alternative tokenization methods that incorporate collaborative signals, which are compared with our method in the paper.
 
 ---
 
@@ -40,7 +41,7 @@ bash run.sh
 ---
 ## 🔧 Plug-and-play Module
 
-We also implement CSA as a light-weight plug-and-play module and evaluate its performance on both TIGER[1] and LIGER[2]. You can reproduce the plug-and-play experiments in the `csa-plug-and-play` directory by following the instructions in:
+We also implement our proposed method as a light-weight plug-and-play module and evaluate its performance on both TIGER[1] and LIGER[2]. You can reproduce the plug-and-play experiments in the `csa-plug-and-play` directory by following the instructions in:
 
 ```
 csa-plug-and-play/readme.md
