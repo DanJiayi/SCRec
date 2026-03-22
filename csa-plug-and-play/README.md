@@ -2,7 +2,7 @@
 
 This directory provides experiments for evaluating our module on both LIGER and TIGER.
 
-This implementation is built upon the official open-source codebase of LIGER: https://github.com/facebookresearch/liger.
+The implementation is built upon the official open-source codebase of LIGER: https://github.com/facebookresearch/liger  (including code for both TIGER and LIGER).
 
 Please refer to the original repository for the environment setup. All settings remain unchanged.
 
