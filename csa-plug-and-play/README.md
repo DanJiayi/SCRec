@@ -30,7 +30,7 @@ If embeddings have not been generated yet, please refer to Step 1 in the parent 
 
 ---
 
-#### Step 2: Run Plug-and-play Training and Evaluation
+#### Step 2: Training and Evaluation
 
 Execute:
 
