@@ -2,6 +2,15 @@
 
 This directory provides experiments for evaluating our module on both LIGER and TIGER.
 
+This implementation is built upon the official open-source codebase of LIGER: https://github.com/facebookresearch/liger.
+
+Please refer to the original repository for the environment setup. All settings remain unchanged.
+
+The wrapped module is located at:
+```
+src/csa_module
+```
+
 ---
 
 #### Step 1: Convert Semantic Embeddings to LIGER Format
@@ -31,14 +40,3 @@ bash run.sh
 
 This will report the performance of LIGER + Ours and TIGER + Ours across all three datasets.
 
----
-
-This implementation is built upon the official open-source codebase of LIGER:
-
-https://github.com/facebookresearch/liger
-
-The wrapped module is located at:
-
-```
-src/csa_module
-```
