@@ -60,7 +60,7 @@ csa-plug-and-play/src/csa_module
 
 For the generative stage in the main experiments, we use the basic environment and code from [RPG](https://github.com/facebookresearch/RPG_KDD2025) (e.g., the dataloader, evaluation, basic pipeline and trainer).
 
-For extracting basic item textual information and similar items, we use the processed data from [GRAM](https://github.com/skleee/GRAM).
+For extracting basic item textual information (title, brand, description, etc.) and similar items, we use the processed data from [GRAM](https://github.com/skleee/GRAM).
 
 
 ---
