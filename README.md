@@ -41,7 +41,7 @@ bash run.sh
 ---
 ## 🔧 Plug-and-play Module
 
-We also implement our proposed method as a light-weight plug-and-play module and evaluate its performance on both TIGER[1] and LIGER[2]. You can reproduce the plug-and-play experiments in the `csa-plug-and-play` directory by following the instructions in:
+We also implement our proposed method as a plug-and-play module and evaluate its performance on both TIGER[1] and LIGER[2]. You can reproduce the experiments in the `csa-plug-and-play` directory by following the instructions in:
 
 ```
 csa-plug-and-play/readme.md
