@@ -1,5 +1,5 @@
 ## Note
-**For the arXiv preprint version only, we have removed the `forward` function** of the `CSA` class in `genrec/models/CSA/model_csa.py` for credit protection. The complete reproducible implementation is included in the submission version and will be released upon acceptance.
+**For the arXiv preprint version only, we have removed the `forward` function** of the `CSA` class in `genrec/models/CSA/model_csa.py` to protect intellectual property. The complete reproducible implementation is included in the submission version and will be released upon acceptance.
 
 This repository contains the code for the paper "Addressing Cross-Stage Decoupling of Semantic and Collaborative Signals in Generative Recommendation".
 
