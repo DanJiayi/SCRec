@@ -442,7 +442,9 @@ class CSA(AbstractModel):
 
     def forward(self, batch: dict, return_loss=True) -> torch.Tensor:
 
-        pass
+        raise NotImplementedError(
+            "The forward implementation is omitted in the arXiv preprint version for credit protection (please refer to README)"
+        )
 
     @staticmethod
     def hyp_map(x, c):
