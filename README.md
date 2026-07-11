@@ -58,7 +58,7 @@ For the generative stage in the main experiments, we use the environment, config
 
 For extracting basic item textual information (title, brand, description, etc.) and similar items, we use the processed data from [GRAM](https://github.com/skleee/GRAM) [4].
 
-For generalizability experients in Section 4.5, we use the official open-source codebase of [LIGER](https://github.com/facebookresearch/liger)
+For generalizability experients in Section 4.5, we use the official open-source codebase of [LIGER](https://github.com/facebookresearch/liger) [2]
 
 We sincerely thank the authors of the above works for their valuable contributions.
 
