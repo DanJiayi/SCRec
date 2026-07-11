@@ -2,7 +2,7 @@ This repository contains the code for the paper "Addressing Cross-Stage Decoupli
 
 ## 🚀 Quick Start
 
-> **Note:** We provide the extracted code sequences under `cache/AmazonReviews2014/Beauty/codebook`, so you can skip Step 1 and Step 2 and directly train the generative model on Beauty dataset.
+> **Note:** We provide an extracted codebook under `cache/AmazonReviews2014/Beauty/codebook`, so you can skip Step 1 and Step 2 and directly train the generative model on Beauty dataset.
 
 #### Step 1: Extract Embeddings
 Generate embeddings for target and collaborative items:
