@@ -35,7 +35,7 @@ If embeddings have not been generated yet, please refer to Step 1 in the parent 
 Execute:
 
 ```bash
-bash run.sh
+bash scripts/run.sh
 ```
 
 This will report the performance of LIGER + Ours and TIGER + Ours across all three datasets.
