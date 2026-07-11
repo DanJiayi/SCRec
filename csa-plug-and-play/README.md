@@ -1,15 +1,10 @@
-## 💡 Plug-and-play Experiments
+## Generalizability Experiments
 
 This directory provides experiments for evaluating our module on both LIGER and TIGER.
 
 The implementation is built upon the official open-source codebase of LIGER: https://github.com/facebookresearch/liger  (including code for both TIGER and LIGER).
 
 Please refer to the original repository for the environment setup. All settings remain unchanged.
-
-The wrapped module is located at:
-```
-src/csa_module
-```
 
 ---
 
@@ -40,3 +35,4 @@ bash scripts/run.sh
 
 This will report the performance of LIGER + Ours and TIGER + Ours across all three datasets.
 
+(The wrapped module is at `src/csa_module.py`. The incorporation of text embedding is controlled by `flag_add_input_embedding: True`)
