@@ -2,6 +2,8 @@ This repository contains the code for the paper "Addressing Cross-Stage Decoupli
 
 ## 🚀 Quick Start
 
+> **Note:** We provide the extracted code sequences under `cache/AmazonReviews2014/Beauty/codebook`, so you can skip Step 1 and Step 2 and directly train the generative model on Beauty dataset.
+
 #### Step 1: Extract Embeddings
 Generate embeddings for target and collaborative items:
 
@@ -39,9 +41,9 @@ bash run.sh
 
 
 ---
-## 🔧 Plug-and-play Module
+## Generalizability Experients
 
-We also implement our proposed method as a plug-and-play module and evaluate its performance on both TIGER[1] and LIGER[2]. You can reproduce the experiments in the `csa-plug-and-play` directory by following the instructions in:
+We also implement our proposed method as a general module and evaluate its performance on both TIGER[1] and LIGER[2]. You can reproduce the experiments in the `csa-plug-and-play` directory by following the instructions in:
 
 ```
 csa-plug-and-play/readme.md
@@ -61,6 +63,10 @@ csa-plug-and-play/src/csa_module
 For the generative stage in the main experiments, we use the environment, configurations and base code from [RPG](https://github.com/facebookresearch/RPG_KDD2025) (e.g., the dataloader, evaluation, basic pipeline and trainer).
 
 For extracting basic item textual information (title, brand, description, etc.) and similar items, we use the processed data from [GRAM](https://github.com/skleee/GRAM).
+
+For generalizability experients in Section 4.5, we use the official open-source codebase of [LIGER](https://github.com/facebookresearch/liger)
+
+We sincerely thank the authors of the above works for their valuable contributions.
 
 
 ---
