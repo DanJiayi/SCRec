@@ -51,18 +51,12 @@ csa-plug-and-play/readme.md
 
 This experiment is built upon the official open-source codebase of [LIGER](https://github.com/facebookresearch/liger) (including code for TIGER and LIGER)
 
-Our wrapped module is located at:
-
-```
-csa-plug-and-play/src/csa_module
-```
-
 ---
 ### Acknowledgement
 
-For the generative stage in the main experiments, we use the environment, configurations and base code from [RPG](https://github.com/facebookresearch/RPG_KDD2025) (e.g., the dataloader, evaluation, basic pipeline and trainer).
+For the generative stage in the main experiments, we use the environment, configurations and base code from [RPG](https://github.com/facebookresearch/RPG_KDD2025) [3](e.g., the dataloader, evaluation, basic pipeline and trainer).
 
-For extracting basic item textual information (title, brand, description, etc.) and similar items, we use the processed data from [GRAM](https://github.com/skleee/GRAM).
+For extracting basic item textual information (title, brand, description, etc.) and similar items, we use the processed data from [GRAM](https://github.com/skleee/GRAM) [4].
 
 For generalizability experients in Section 4.5, we use the official open-source codebase of [LIGER](https://github.com/facebookresearch/liger)
 
@@ -75,3 +69,7 @@ We sincerely thank the authors of the above works for their valuable contributio
 [1] Shashank Rajput, Nikhil Mehta, Anima Singh, Raghunandan Hulikal Keshavan, Trung Vu, Lukasz Heldt, Lichan Hong, Yi Tay, Vinh Tran, Jonah Samost, et al. 2023. Recommender systems with generative retrieval. Advances in Neural Information Processing Systems 36 (2023), 10299–10315.
 
 [2] Guanyu Lin, Zhigang Hua, Tao Feng, Shuang Yang, Bo Long, and Jiaxuan You. 2025. Unified semantic and ID representation learning for deep recommenders. arXiv preprint arXiv:2502.16474 (2025).
+
+[3] Yupeng Hou, Jiacheng Li, Ashley Shin, Jinsung Jeon, Abhishek Santhanam, Wei Shao, Kaveh Hassani, Ning Yao, and Julian McAuley. 2025. Generating long semantic ids in parallel for recommendation. In Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2. 956–966.
+
+[4] Sunkyung Lee, Minjin Choi, Eunseong Choi, Hye-young Kim, and Jongwuk Lee. 2025. Gram: Generative recommendation via semantic-aware multi-granular late fusion. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers). 33294–33312.
