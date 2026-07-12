@@ -3,7 +3,7 @@ The wrapped module of our method is located at `csa_module.py`, and can be incor
 
 To reproduce the generalizability experiments on LIGER and TIGER:
 
-1. Clone the official open source code of LIGER (https://github.com/facebookresearch/liger), which contains code for both TIGER and LIGER.
+1. Clone the official open-source code of LIGER (https://github.com/facebookresearch/liger), which contains code for both TIGER and LIGER.
 
 2. Convert the extracted embeddings to LIGER format by running
 ```bash
