@@ -1,3 +1,0 @@
-writer: wandb
-mode: online  # option: disabled, online. Disable so don't log wandb.
-project: liger
