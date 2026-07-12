@@ -41,7 +41,7 @@ bash run.sh
 
 
 ---
-## Generalizability
+### Generalizability
 
 We also implement our proposed method as a reusable module and evaluate its performance on both TIGER[1] and LIGER[2]. Please refer to the  instructions in:
 
