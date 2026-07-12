@@ -252,81 +252,16 @@ def train_epoch(
         loss += embedding_loss * method_config["embedding_loss_weight"]
 
         # ================= Optional CSA module =================
-        # When enabled, we aggregate the code sequence embeddings into
-        # item-level ID embeddings using learnable weights (stored in
-        # CSAModule.code_weights), then compute the CSA losses and add
-        # them to the main loss. The default path (no CSA) is kept
+        # When enabled, CSAModule internally prepares the code-level
+        # embeddings, aggregates them with dynamic weights, performs
+        # gated fusion, and returns both the fused embeddings and a
+        # dict of CSA losses.  The default path (no CSA) is kept
         # identical to the original implementation.
         csa_total_loss = 0.0
         if csa_module is not None and method_config["use_id"] == "sid":
-            # input_sids: [B, seq_len]
-            input_sids = batch["input_sids"].to(device)
-
-            # Code tokens start after the (optional) user id.
-            item_idx_start = 1 if method_config["include_user_id"] else 0
-            seq_len = input_sids.size(1)
-
-            if (
-                csa_module.n_codebook is not None
-                and item_idx_start + csa_module.n_codebook * max_items_per_seq <= seq_len
-            ):
-                # Obtain raw code-level token embeddings from the shared
-                # embedding matrix: [B, seq_len, D]
-                token_embeds = model.shared(input_sids)
-
-                # Slice out the region that corresponds to item semantic IDs
-                # and reshape to [B, max_items_per_seq, n_codebook, D].
-                code_region = token_embeds[
-                    :,
-                    item_idx_start : item_idx_start
-                    + csa_module.n_codebook * max_items_per_seq,
-                    :,
-                ]
-                B, _, D = code_region.shape
-                code_region = code_region.view(
-                    B, max_items_per_seq, csa_module.n_codebook, D
-                )
-
-                # Build a batch view for CSA: we align item_ids with the
-                # aggregated item-level embeddings (length = max_items_per_seq).
-                batch_for_csa = dict(batch)
-                full_input_ids = batch_for_csa["input_ids"].to(device)
-                if method_config["include_user_id"]:
-                    # Skip the user-id position when present.
-                    item_ids = full_input_ids[:, 1 : 1 + max_items_per_seq]
-                else:
-                    item_ids = full_input_ids[:, :max_items_per_seq]
-                # If for any reason the sequence is shorter, pad with zeros.
-                if item_ids.size(1) < max_items_per_seq:
-                    pad_cols = max_items_per_seq - item_ids.size(1)
-                    pad = torch.zeros(
-                        item_ids.size(0),
-                        pad_cols,
-                        dtype=item_ids.dtype,
-                        device=item_ids.device,
-                    )
-                    item_ids = torch.cat([item_ids, pad], dim=1)
-
-                batch_for_csa["input_ids"] = item_ids
-
-                # Dynamic weights over code positions, generated from text
-                # embeddings via a single linear layer inside CSAModule.
-                # weights: (B, max_items_per_seq, L)
-                weights = csa_module.get_code_weights(
-                    batch_for_csa, device=code_region.device
-                )
-                if weights is None:
-                    raise ValueError(
-                        "CSAModule.n_codebook must be set to use dynamic code weights."
-                    )
-                # Apply position-specific weights to code embeddings
-                id_embeddings = (code_region * weights[..., :, None]).sum(
-                    dim=2
-                )  # [B, max_items_per_seq, D]
-
-                _, csa_losses = csa_module(id_embeddings, batch_for_csa)
-                csa_total_loss = csa_losses.get("total", 0.0)
-                loss = loss + csa_total_loss
+            fused, csa_losses = csa_module(batch, device, method_config, model, item_embedding)
+            csa_total_loss = csa_losses.get("total", 0.0)
+            loss = loss + csa_total_loss
 
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
@@ -493,21 +428,9 @@ def train_tiger(
     # original behavior is unchanged when `use_csa=False`.
     csa_module = None
     if use_csa and method_config["use_id"] == "sid":
-        # Pad item-level text embeddings with a zero row at index 0 so
-        # that padding / user-id positions can safely map to 0.
-        with torch.no_grad():
-            if item_embedding.device != torch.device("cpu"):
-                text_embeddings_cpu = item_embedding.detach().cpu()
-            else:
-                text_embeddings_cpu = item_embedding
-            pad_row = torch.zeros(
-                1, text_embeddings_cpu.size(1), dtype=text_embeddings_cpu.dtype
-            )
-            text_embeddings_with_pad = torch.cat([pad_row, text_embeddings_cpu], dim=0)
-
         csa_module = CSAModule(
             hidden_dim=t5_config["d_model"],
-            text_embeddings=text_embeddings_with_pad,
+            text_dim=item_embedding.shape[1],
             dataset=orig_config["dataset"]["name"],
             contrastive_alpha=method_config.get("csa_contrastive_alpha", 0.5),
             contrastive_tau=method_config.get("csa_contrastive_tau", 0.07),
@@ -515,6 +438,7 @@ def train_tiger(
             manifold_c=method_config.get("csa_manifold_c", 0.2),
             n_codebook=n_codebook,
             code_weight_tau=method_config.get("code_weight_tau", 1.0),
+            max_items_per_seq=max_items_per_seq,
         ).to(device)
 
     total_steps = trainer_config["steps"]
