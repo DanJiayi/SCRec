@@ -31,5 +31,5 @@ bash run.sh
 ```
 This will report the performance of LIGER + Ours and TIGER + Ours across all three datasets.
 
-(We further find that for TIGER, even without directly adding the text embeddings to the generative model inputs, the alignment losses (which bring the code and semantic representations closer) still improve performance by recovering semantic information in the learned code embeddings.)
+(We further find that for TIGER, even without directly adding the text embeddings to the generative model inputs, the alignment losses, which bring the code and semantic representations closer, still improve performance by recovering semantic information in the learned code embeddings.)
 
