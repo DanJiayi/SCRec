@@ -1,4 +1,4 @@
-This repository contains the code for the paper "Addressing Cross-Stage Decoupling of Semantic and Collaborative Signals in Generative Recommendation". (Accepted by Recsys2026)
+This repository contains the code for the paper "Jiayi Dan, Weijian Li, Yongqi Liu, Kaiqiao Zhan. Addressing Cross-Stage Decoupling of Semantic and Collaborative Signals in Generative Recommendation. Recsys2026"
 
 <div align="center">
     <img 
