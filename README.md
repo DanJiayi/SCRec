@@ -1,5 +1,8 @@
 This repository contains the code for the paper "Addressing Cross-Stage Decoupling of Semantic and Collaborative Signals in Generative Recommendation". (Accepted by Recsys2026)
 
+<img width="1286" height="605" alt="image" src="https://github.com/user-attachments/assets/e9bc5f1e-ca38-41b2-aa1f-4ef69d389aad" />
+
+
 ## 🚀 Quick Start
 
 > **Note:** We provide an extracted codebook under `cache/AmazonReviews2014/Beauty/codebook`, so you can skip Step 1 and Step 2 and directly train the generative model on Beauty dataset.
