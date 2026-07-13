@@ -2,7 +2,7 @@ This repository contains the code for the paper "Jiayi Dan, Weijian Li, Yongqi L
 
 <div align="center">
     <img 
-        width="600" 
+        width="650" 
         alt="image" 
         src="https://github.com/user-attachments/assets/05f3f6f7-33f1-473c-b6e5-0cff86cef6e2"
     >
