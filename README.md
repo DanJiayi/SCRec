@@ -1,8 +1,12 @@
 This repository contains the code for the paper "Addressing Cross-Stage Decoupling of Semantic and Collaborative Signals in Generative Recommendation". (Accepted by Recsys2026)
 
 <p align="center">
-  <img width="600" alt="image" src="[https://github.com/user-attachments/assets/e9bc5f1e-ca38-41b2-aa1f-4ef69d389aad](https://github.com/user-attachments/assets/1fd83b45-b9a2-440a-abcb-7ab09109fd33)" />
+  <img width="600" alt="image" src="[[https://github.com/user-attachments/assets/e9bc5f1e-ca38-41b2-aa1f-4ef69d389aad](https://github.com/user-attachments/assets/05f3f6f7-33f1-473c-b6e5-0cff86cef6e2)](https://github.com/user-attachments/assets/1fd83b45-b9a2-440a-abcb-7ab09109fd33)" />
 </p>
+
+
+<img width="1388" height="636" alt="image" src="https://github.com/user-attachments/assets/05f3f6f7-33f1-473c-b6e5-0cff86cef6e2" />
+
 
 
 ## 🚀 Quick Start
