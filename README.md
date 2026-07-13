@@ -1,6 +1,6 @@
 This repository contains the code for the paper "Addressing Cross-Stage Decoupling of Semantic and Collaborative Signals in Generative Recommendation". (Accepted by Recsys2026)
 
-<div style="display: flex; justify-content: center; width: 100%;">
+<div align="center">
     <img 
         width="600" 
         alt="image" 
